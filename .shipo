@@ -1,0 +1,11 @@
+# shipo releases itself: `make publish`. The tag push starts .github/workflows/release.yml,
+# which builds the binaries, creates the GitHub release, and updates the Homebrew formula.
+
+[version]
+preset = "go"
+
+[build]
+command = ["go vet ./...", "go test ./..."]
+
+[publish]
+push = "origin/main"
