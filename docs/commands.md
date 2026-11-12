@@ -85,4 +85,12 @@ tag      web/v1.4.0
 | `-`  | skipped |
 | `✗`  | failed  |
 
-On a terminal the output is in color. Piped, in a file, or with `NO_COLOR` set, it is plain text; `FORCE_COLOR` turns color on anywhere.
+While a program runs, its latest line shows on the step's line, and only the result stays. If it fails, its last lines are shown under the `✗`:
+
+```shipo
+✗ command    [1/1] npm publish
+  │ npm notice Publishing to https://registry.npmjs.org/
+  │ npm error 403 Forbidden - you must be logged in
+```
+
+On a terminal the output is in color. Piped, in a file, or with `NO_COLOR` set, it is plain text, and programs' output streams in full; `FORCE_COLOR` turns color on anywhere.

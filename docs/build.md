@@ -20,10 +20,14 @@ Each command runs **directly, without a shell**, the same on every OS:
 | `["make", "make test"]`            | several commands, in order      |
 | `sh scripts/build.sh`              | for `&&`, pipes and `$VAR`      |
 
+While a command runs, one line follows its latest output; when it ends, only the result stays:
+
 ```shipo
-… build      [1/2] npm ci
+… build      [2/2] npm run build  › vite v5.4.0 building for production...
+```
+
+```shipo
 ✓ build      [1/2] npm ci
-… build      [2/2] npm run build
 ✓ build      [2/2] npm run build
 ```
 

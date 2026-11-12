@@ -161,6 +161,8 @@
                 }
 
                 Prism.languages.shipo = {
+                    "shipo-live": { pattern: / {2}› .+$/m, alias: "shipo-dim" },
+                    "shipo-tail": { pattern: /(^ {2})│ .*$/m, lookbehind: true, alias: "shipo-dim" },
                     "shipo-command": { pattern: /^\$ .*$/m, alias: "shipo-bold" },
                     "shipo-step-done": step("✓", "shipo-done", false),
                     "shipo-step-fail": step("✗", "shipo-fail", false),

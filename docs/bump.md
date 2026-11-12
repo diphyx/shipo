@@ -26,7 +26,6 @@ javascript (1.2.3)
   2) minor    → 1.3.0
   3) major    → 2.0.0
   4) current  → 1.2.3
-> 2
 ```
 
 `shipo minor` on the command line wins over `level`.

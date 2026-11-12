@@ -24,7 +24,7 @@ internal/
 ├── text/             small pure helpers
 │   ├── keyword/      {name} expansion
 │   └── semver/       parse, bump, compare
-├── ui/               output in color or plain, menu, confirm, terminal check
+├── ui/               output in color or plain, live task lines, menu, confirm
 ├── skill/            the embedded SKILL.md
 └── testkit/          test helpers: a git repo with a bare remote, a fake runner
 ```

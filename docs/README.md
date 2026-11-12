@@ -14,7 +14,6 @@ javascript (1.4.0)
   2) minor    → 1.5.0
   3) major    → 2.0.0
   4) current  → 1.4.0
-> 2
 
 ✓ version    package.json → 1.5.0
 ✓ commit     chore: release v1.5.0
