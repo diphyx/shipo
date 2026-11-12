@@ -41,14 +41,13 @@ Move with `↑` `↓` and press `enter`, or press `1`–`4`. Without a terminal,
 
 `current` writes no version and makes no commit. It puts the version's tag on HEAD, and publish runs again:
 
-| The tag is            | `current`                                         |
-| --------------------- | ------------------------------------------------- |
-| on HEAD               | kept                                              |
-| missing               | created on HEAD                                   |
-| on an older commit    | moved to HEAD, after a confirm                    |
+| The tag is         | `current`       |
+| ------------------ | --------------- |
+| on HEAD            | kept            |
+| missing            | created on HEAD |
+| on an older commit | moved to HEAD   |
 
 ```shipo
-Move tag v1.2.0 from 6fe69cc to HEAD (a58a190)? [y/N] y
 - version    1.2.0 (current)
 ✓ tag        v1.2.0 moved to HEAD
 ✓ push       origin/main + v1.2.0
@@ -56,11 +55,11 @@ Move tag v1.2.0 from 6fe69cc to HEAD (a58a190)? [y/N] y
 
 Use it to fix a release whose CI failed, without a new version: HEAD's new commits join this version. The push deletes the tag on the remote first, so it's a new tag event and tag workflows run again.
 
-!> A moved tag is a changed tag: anyone who fetched the old one keeps it until `git fetch --tags --force`. `shipo bump current` moves it without asking.
+!> A moved tag is a changed tag: anyone who fetched the old one keeps it until `git fetch --tags --force`.
 
 ## Safety
 
 - The tree must be clean, with no untracked files.
 - A new version's tag must be free, locally and on the remote.
 - If a later local step fails, the commit and tag are undone, and a moved tag goes back to its commit.
-- Only `current` moves an existing tag, and the flow asks first.
+- Only `current` moves an existing tag.

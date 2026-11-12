@@ -21,7 +21,6 @@
 | `HEAD is not a release`                         | `shipo bump <level>` first                         |
 | `tag v1.5.0 is not on origin; run shipo push first` | `shipo push`                                   |
 | `✗ … failed; nothing was undone`                | fix it, then run that step again                   |
-| `tag v1.2.0 not moved; nothing changed`         | you said no to moving the tag; bump to a new version instead |
 
 ## Common Mistakes
 

@@ -52,11 +52,6 @@ func (app *App) Flow(context context.Context, level semver.Level) error {
 		return checksError
 	}
 
-	moveError := app.confirmMove(context, plan)
-	if moveError != nil {
-		return moveError
-	}
-
 	result, bumpError := bump.Create(context, plan, app.UI)
 	if bumpError != nil {
 		return bumpError
@@ -277,33 +272,4 @@ func bumpDetail(plan *release.Release) string {
 	}
 
 	return fmt.Sprintf("%s · %s → %s", plan.Level, plan.Previous, plan.Next)
-}
-
-// confirmMove asks before current moves a tag from another commit to HEAD:
-// a published tag changes, and HEAD's new commits join this version.
-func (app *App) confirmMove(context context.Context, plan *release.Release) error {
-	if plan.Level != semver.LEVEL_CURRENT {
-		return nil
-	}
-
-	tagged := plan.Git.Resolve(context, plan.Tag)
-	head, _ := plan.Git.Head(context)
-
-	if tagged == "" || tagged == head {
-		return nil
-	}
-
-	from, _ := plan.Git.ShortHash(context, tagged)
-	to, _ := plan.Git.ShortHash(context, head)
-
-	isYes, confirmError := app.UI.Confirm(context, fmt.Sprintf("Move tag %s from %s to HEAD (%s)?", plan.Tag, from, to))
-	if confirmError != nil {
-		return confirmError
-	}
-
-	if !isYes {
-		return fmt.Errorf("tag %s not moved; nothing changed", plan.Tag)
-	}
-
-	return nil
 }

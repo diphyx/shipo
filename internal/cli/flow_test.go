@@ -173,7 +173,7 @@ func TestFlowRetryDeclined(t *testing.T) {
 	}
 }
 
-func TestFlowCurrentMovesTagAfterConfirm(t *testing.T) {
+func TestFlowCurrentMovesTag(t *testing.T) {
 	current := newSession(t, "[bump]\nlevel = \"current\"\n", nil)
 	current.repo.Git("tag", "--annotate", "v1.0.0", "--message", "Release v1.0.0")
 	current.repo.Git("push", "--quiet", "origin", "v1.0.0")
@@ -182,29 +182,12 @@ func TestFlowCurrentMovesTagAfterConfirm(t *testing.T) {
 	current.repo.Git("push", "--quiet", "origin", "main")
 	head := current.repo.Git("rev-parse", "HEAD")
 
-	flowError := current.run(t, "y\n", true)
+	flowError := current.run(t, "", true)
 	if flowError != nil {
 		t.Fatalf("flow: %v\n%s", flowError, current.output)
 	}
 
-	if !strings.Contains(current.output.String(), "Move tag v1.0.0 from ") || current.repo.RemoteGit("rev-parse", "v1.0.0^{commit}") != head {
+	if strings.Contains(current.output.String(), "[y/N]") || !strings.Contains(current.output.String(), "✓ tag        v1.0.0 moved to HEAD") || current.repo.RemoteGit("rev-parse", "v1.0.0^{commit}") != head {
 		t.Fatalf("the tag must move to HEAD, locally and on the remote:\n%s", current.output)
-	}
-}
-
-func TestFlowCurrentDeclinedChangesNothing(t *testing.T) {
-	current := newSession(t, "[bump]\nlevel = \"current\"\n", nil)
-	current.repo.Git("tag", "--annotate", "v1.0.0", "--message", "Release v1.0.0")
-	old := current.repo.Git("rev-parse", "v1.0.0^{commit}")
-	current.repo.Write(map[string]string{"fix.txt": "fixed\n"})
-	current.repo.Commit("fix: the release")
-
-	flowError := current.run(t, "n\n", true)
-	if flowError == nil || !strings.Contains(flowError.Error(), "not moved") {
-		t.Fatalf("want a not moved error, got %v", flowError)
-	}
-
-	if current.repo.Git("rev-parse", "v1.0.0^{commit}") != old {
-		t.Fatal("a declined move must leave the tag where it was")
 	}
 }
