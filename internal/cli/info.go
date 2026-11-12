@@ -69,14 +69,27 @@ func (app *App) Check(context context.Context) error {
 	options := check.Everything()
 	options.IsBump = !isAtRelease
 
+	task := app.UI.Start("check", "")
+
+	if app.UI.IsLive {
+		options.Progress = task
+	}
+
 	checks := check.Run(context, next, options)
+
+	var state []check.Item
+	if isAtRelease {
+		state = check.State(context, current)
+	}
+
+	task.Clear()
 
 	app.UI.Heading("checks", true)
 	printItems(app.UI, checks)
 
 	if isAtRelease {
 		app.UI.Heading("release "+current.Tag, false)
-		printItems(app.UI, check.State(context, current))
+		printItems(app.UI, state)
 	} else {
 		app.UI.Heading("release", false)
 		app.UI.Note("HEAD is not a release; the next one starts with shipo or shipo bump")

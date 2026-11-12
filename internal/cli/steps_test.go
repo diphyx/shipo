@@ -193,8 +193,11 @@ func TestStepChecksFail(t *testing.T) {
 		t.Fatal("build check must fail")
 	}
 
-	if commandError := current.run(t, "", false, "command"); commandError == nil || !strings.Contains(commandError.Error(), "shipo-missing-tool") {
-		t.Fatalf("command check must fail, got %v", commandError)
+	current.output.Reset()
+
+	commandError := current.run(t, "", false, "command")
+	if commandError == nil || !strings.Contains(current.output.String(), "✗ tools     not installed: shipo-missing-tool") {
+		t.Fatalf("command check must fail and say why, got %v:\n%s", commandError, current.output)
 	}
 }
 
@@ -203,8 +206,8 @@ func TestStepBumpChecks(t *testing.T) {
 	current.repo.Git("tag", "v1.0.1")
 
 	bumpError := current.run(t, "", false, "bump", "patch")
-	if bumpError == nil || !strings.Contains(bumpError.Error(), "v1.0.1 already exists") {
-		t.Fatalf("want a taken tag, got %v", bumpError)
+	if bumpError == nil || !strings.Contains(current.output.String(), "✗ tag       v1.0.1 already exists") {
+		t.Fatalf("want a taken tag, got %v:\n%s", bumpError, current.output)
 	}
 }
 

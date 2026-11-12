@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/diphyx/shipo/internal/check"
 	"github.com/diphyx/shipo/internal/release"
@@ -44,7 +45,9 @@ func (app *App) Flow(context context.Context, level semver.Level) error {
 		return planError
 	}
 
-	checksError := check.Error(check.Run(context, plan, check.Everything()))
+	app.UI.Done("bump", bumpDetail(plan))
+
+	checksError := app.runChecks(context, plan, check.Everything())
 	if checksError != nil {
 		return checksError
 	}
@@ -211,10 +214,62 @@ func (app *App) offerRetry(context context.Context, target *release.Target) (*re
 		return nil, confirmError
 	}
 
-	checksError := check.Error(check.Run(context, plan, check.Options{IsBuild: true, Tasks: publish.Tasks}))
+	checksError := app.runChecks(context, plan, check.Options{IsBuild: true, Tasks: publish.Tasks})
 	if checksError != nil {
 		return nil, checksError
 	}
 
 	return plan, nil
+}
+
+// runChecks runs the checks on a live line that shows each one as it starts,
+// then prints what passed, or each failure on its own line.
+func (app *App) runChecks(context context.Context, plan *release.Release, options check.Options) error {
+	task := app.UI.Start("checks", "")
+
+	if app.UI.IsLive {
+		options.Progress = task
+	}
+
+	items := check.Run(context, plan, options)
+	failed := check.Failed(items)
+
+	if len(failed) == 0 {
+		task.DoneAs(checkNames(items))
+
+		return nil
+	}
+
+	task.FailAs(checkNames(failed))
+
+	for _, item := range failed {
+		app.UI.Item(ui.MARK_FAIL, item.Name, item.Detail)
+	}
+
+	return fmt.Errorf("checks failed: %s", checkNames(failed))
+}
+
+// checkNames lists the names of checks, each once, in order.
+func checkNames(items []check.Item) string {
+	var names []string
+
+	seen := map[string]bool{}
+
+	for _, item := range items {
+		if !seen[item.Name] {
+			seen[item.Name] = true
+			names = append(names, item.Name)
+		}
+	}
+
+	return strings.Join(names, ", ")
+}
+
+// bumpDetail describes the chosen bump: "minor · 1.1.0 → 1.2.0".
+func bumpDetail(plan *release.Release) string {
+	if plan.Level == semver.LEVEL_CURRENT {
+		return fmt.Sprintf("%s · %s", plan.Level, plan.Next)
+	}
+
+	return fmt.Sprintf("%s · %s → %s", plan.Level, plan.Previous, plan.Next)
 }

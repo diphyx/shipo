@@ -34,7 +34,7 @@ func (app *App) StepBump(context context.Context, name string) error {
 		return planError
 	}
 
-	checksError := check.Error(check.Run(context, plan, check.Options{IsBump: true, Tasks: []string{publish.TASK_PUSH}}))
+	checksError := app.runChecks(context, plan, check.Options{IsBump: true, Tasks: []string{publish.TASK_PUSH}})
 	if checksError != nil {
 		return checksError
 	}
@@ -92,7 +92,7 @@ func (app *App) Step(context context.Context, name string, isNoWait bool) error 
 
 	options := check.Options{Tasks: []string{name}}
 
-	checksError := check.Error(check.Run(context, plan, options))
+	checksError := app.runChecks(context, plan, options)
 	if checksError != nil {
 		return checksError
 	}
