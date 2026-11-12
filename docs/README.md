@@ -10,10 +10,10 @@
 $ shipo
 javascript (1.4.0)
 
-  1) patch    → 1.4.1
-  2) minor    → 1.5.0
-  3) major    → 2.0.0
-  4) current  → 1.4.0
+  patch    → 1.4.1
+❯ minor    → 1.5.0
+  major    → 2.0.0
+  current  → 1.4.0
 
 ✓ bump       minor · 1.4.0 → 1.5.0
 ✓ checks     tools, tree, remote, build

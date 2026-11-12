@@ -170,10 +170,11 @@
                     "shipo-step-skip": step("-", "shipo-dim", true),
                     "shipo-heading": { pattern: /^(?:checks|plan|release(?: \S+)?)$/m, alias: "shipo-bold" },
                     "shipo-title": { pattern: /^\S+ \(\d+\.\d+\.\d+[^)]*\)$/m, alias: "shipo-bold" },
-                    "shipo-menu": {
-                        pattern: /^ {2}\d\) .+$/m,
-                        inside: { "shipo-dim": /^ {2}\d\)|→/, "shipo-bold": /\S+$/ },
+                    "shipo-menu-selected": {
+                        pattern: /^❯ \S+ +→ \S+$/m,
+                        inside: { "shipo-prompt": /^❯/, "shipo-dim": /→/, "shipo-bold": /\S+/ },
                     },
+                    "shipo-menu": { pattern: /^ {2}\S+ +→ \S+$/m, alias: "shipo-dim" },
                     "shipo-field": { pattern: /^(?:target|preset|source|version|tag)(?= +\S)/m, alias: "shipo-dim" },
                     "shipo-block": { pattern: /^(?:release|workflow|command)(?= +\S)/m, alias: "shipo-bold" },
                     "shipo-row": { pattern: /(^ {2})(?:push|release|workflow|command)(?= +\S)/m, lookbehind: true, alias: "shipo-bold" },

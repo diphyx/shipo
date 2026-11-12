@@ -22,11 +22,13 @@ commit = "chore: release v{version}"
 $ shipo
 javascript (1.2.3)
 
-  1) patch    → 1.2.4
-  2) minor    → 1.3.0
-  3) major    → 2.0.0
-  4) current  → 1.2.3
+  patch    → 1.2.4
+❯ minor    → 1.3.0
+  major    → 2.0.0
+  current  → 1.2.3
 ```
+
+Move with `↑` `↓` and press `enter`, or press `1`–`4`. Without a terminal, a number is typed instead.
 
 `shipo minor` on the command line wins over `level`.
 
