@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"strings"
@@ -71,8 +72,8 @@ func TestColorKeepsColumns(t *testing.T) {
 func TestColoredMenuAndConfirm(t *testing.T) {
 	terminal, output := colored("1\ny\n")
 
-	_, menuError := terminal.Menu("app (1.0.0)", []Choice{{Label: "patch", Detail: "1.0.1"}})
-	_, confirmError := terminal.Confirm("Run?")
+	_, menuError := terminal.Menu(context.Background(), "app (1.0.0)", []Choice{{Label: "patch", Detail: "1.0.1"}})
+	_, confirmError := terminal.Confirm(context.Background(), "Run?")
 
 	if menuError != nil || confirmError != nil {
 		t.Fatal(menuError, confirmError)

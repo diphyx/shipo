@@ -99,7 +99,7 @@ func (app *App) publish(context context.Context, plan *release.Release) error {
 			app.UI.Print("\n")
 			app.UI.Block(task, publish.Describe(plan, task))
 
-			isYes, confirmError := app.UI.Confirm(question(task))
+			isYes, confirmError := app.UI.Confirm(context, question(task))
 			if confirmError != nil {
 				return confirmError
 			}
@@ -180,7 +180,7 @@ func (app *App) chooseLevel(context context.Context, target *release.Target, lev
 		choices[index] = ui.Choice{Label: string(option), Detail: next.String()}
 	}
 
-	index, menuError := app.UI.Menu(fmt.Sprintf("%s (%s)", target.Version.Preset, current.Version), choices)
+	index, menuError := app.UI.Menu(context, fmt.Sprintf("%s (%s)", target.Version.Preset, current.Version), choices)
 	if menuError != nil {
 		return "", menuError
 	}
@@ -206,7 +206,7 @@ func (app *App) offerRetry(context context.Context, target *release.Target) (*re
 		return nil, nil
 	}
 
-	isYes, confirmError := app.UI.Confirm(fmt.Sprintf("HEAD is release %s, not yet pushed. Publish it again without a new bump?", plan.Tag))
+	isYes, confirmError := app.UI.Confirm(context, fmt.Sprintf("HEAD is release %s, not yet pushed. Publish it again without a new bump?", plan.Tag))
 	if confirmError != nil || !isYes {
 		return nil, confirmError
 	}

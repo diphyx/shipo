@@ -1,10 +1,14 @@
 package ui
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"errors"
+	"io"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLines(t *testing.T) {
@@ -50,7 +54,7 @@ func TestConfirm(t *testing.T) {
 	for input, want := range cases {
 		var output bytes.Buffer
 
-		isYes, confirmError := NewTestTerminal(&output, input, true).Confirm("Run?")
+		isYes, confirmError := NewTestTerminal(&output, input, true).Confirm(context.Background(), "Run?")
 		if confirmError != nil {
 			t.Fatalf("%q: %v", input, confirmError)
 		}
@@ -66,7 +70,7 @@ func TestConfirm(t *testing.T) {
 }
 
 func TestConfirmNeedsTerminal(t *testing.T) {
-	_, confirmError := NewTestTerminal(&bytes.Buffer{}, "y\n", false).Confirm("Run?")
+	_, confirmError := NewTestTerminal(&bytes.Buffer{}, "y\n", false).Confirm(context.Background(), "Run?")
 	if !errors.Is(confirmError, ErrNoTerminal) {
 		t.Fatalf("want ErrNoTerminal, got %v", confirmError)
 	}
@@ -77,7 +81,7 @@ func TestMenu(t *testing.T) {
 
 	var output bytes.Buffer
 
-	index, menuError := NewTestTerminal(&output, "0\nabc\n3\n2\n", true).Menu("app (1.0.0)", choices)
+	index, menuError := NewTestTerminal(&output, "0\nabc\n3\n2\n", true).Menu(context.Background(), "app (1.0.0)", choices)
 	if menuError != nil || index != 1 {
 		t.Fatalf("index = %d, %v", index, menuError)
 	}
@@ -93,12 +97,12 @@ func TestMenu(t *testing.T) {
 }
 
 func TestMenuEnd(t *testing.T) {
-	_, menuError := NewTestTerminal(&bytes.Buffer{}, "", true).Menu("x", []Choice{{Label: "a"}})
+	_, menuError := NewTestTerminal(&bytes.Buffer{}, "", true).Menu(context.Background(), "x", []Choice{{Label: "a"}})
 	if menuError == nil {
 		t.Fatal("want an error when input ends")
 	}
 
-	_, terminalError := NewTestTerminal(&bytes.Buffer{}, "1\n", false).Menu("x", []Choice{{Label: "a"}})
+	_, terminalError := NewTestTerminal(&bytes.Buffer{}, "1\n", false).Menu(context.Background(), "x", []Choice{{Label: "a"}})
 	if !errors.Is(terminalError, ErrNoTerminal) {
 		t.Fatalf("want ErrNoTerminal, got %v", terminalError)
 	}
@@ -108,5 +112,45 @@ func TestNewTerminal(t *testing.T) {
 	terminal := NewTerminal()
 	if terminal.Out == nil || terminal.Err == nil || terminal.input == nil {
 		t.Fatal("streams not set")
+	}
+}
+
+func TestPromptsStopOnCtrlC(t *testing.T) {
+	reader, writer := io.Pipe()
+	defer func() { _ = writer.Close() }()
+
+	terminal := &Terminal{Out: &bytes.Buffer{}, IsInteractive: true, input: bufio.NewReader(reader)}
+
+	for name, prompt := range map[string]func(context.Context) error{
+		"menu": func(cancelled context.Context) error {
+			_, menuError := terminal.Menu(cancelled, "x", []Choice{{Label: "a"}})
+
+			return menuError
+		},
+		"confirm": func(cancelled context.Context) error {
+			_, confirmError := terminal.Confirm(cancelled, "Run?")
+
+			return confirmError
+		},
+	} {
+		cancelled, cancel := context.WithCancel(context.Background())
+		done := make(chan error, 1)
+
+		go func() { done <- prompt(cancelled) }()
+
+		cancel()
+
+		select {
+		case promptError := <-done:
+			{
+				if !errors.Is(promptError, ErrCancelled) {
+					t.Fatalf("%s: want ErrCancelled, got %v", name, promptError)
+				}
+			}
+		case <-time.After(2 * time.Second):
+			{
+				t.Fatalf("%s still waits for input after Ctrl-C", name)
+			}
+		}
 	}
 }

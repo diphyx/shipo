@@ -37,6 +37,9 @@ Info:
   shipo --version | --help
 `
 
+// EXIT_CANCELLED is the exit code after Ctrl-C, as shells use: 128 + SIGINT.
+const EXIT_CANCELLED = 130
+
 // App holds what every command needs.
 type App struct {
 	UI      *ui.Terminal
@@ -60,6 +63,12 @@ func Run(arguments []string, version string) int {
 	app := &App{UI: ui.NewTerminal(), Runner: process.System{}, Dir: dir, Version: version}
 
 	runError := app.Dispatch(signalContext, arguments)
+	if runError != nil && signalContext.Err() != nil {
+		app.UI.Error(ui.ErrCancelled)
+
+		return EXIT_CANCELLED
+	}
+
 	if runError != nil {
 		app.UI.Error(runError)
 
@@ -129,7 +138,7 @@ func (app *App) Dispatch(context context.Context, arguments []string) error {
 		}
 	case "skill":
 		{
-			return app.Skill(rest)
+			return app.Skill(context, rest)
 		}
 	}
 

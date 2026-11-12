@@ -4,6 +4,7 @@ package ui
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -32,6 +33,9 @@ const (
 
 // ErrNoTerminal is returned when a prompt is needed but there is no terminal.
 var ErrNoTerminal = errors.New("needs a terminal; run it yourself, or use the step commands")
+
+// ErrCancelled is returned when a prompt is stopped, by Ctrl-C or the end of input.
+var ErrCancelled = errors.New("cancelled")
 
 // Terminal writes output and reads answers.
 type Terminal struct {
@@ -190,20 +194,57 @@ func (terminal *Terminal) Block(label string, lines []string) {
 	}
 }
 
-// Confirm asks a yes/no question. No is the default.
-func (terminal *Terminal) Confirm(question string) (bool, error) {
+// readLine reads one answer. It stops at once when the context is cancelled,
+// as Ctrl-C does, instead of waiting for the reader.
+func (terminal *Terminal) readLine(context context.Context) (string, error) {
+	type reply struct {
+		answer string
+		err    error
+	}
+
+	replies := make(chan reply, 1)
+
+	go func() {
+		answer, readError := terminal.input.ReadString('\n')
+		replies <- reply{answer: answer, err: readError}
+	}()
+
+	select {
+	case <-context.Done():
+		{
+			_, _ = fmt.Fprintln(terminal.Out)
+
+			return "", ErrCancelled
+		}
+	case got := <-replies:
+		{
+			if got.err != nil && got.answer == "" {
+				return "", ErrCancelled
+			}
+
+			return strings.TrimSpace(got.answer), nil
+		}
+	}
+}
+
+// Confirm asks a yes/no question. No is the default, and so is the end of input.
+func (terminal *Terminal) Confirm(context context.Context, question string) (bool, error) {
 	if !terminal.IsInteractive {
 		return false, ErrNoTerminal
 	}
 
 	_, _ = fmt.Fprint(terminal.Out, terminal.style(question, STYLE_BOLD)+" "+terminal.style("[y/N]", STYLE_DIM)+" ")
 
-	answer, readError := terminal.input.ReadString('\n')
-	if readError != nil && answer == "" {
+	answer, readError := terminal.readLine(context)
+	if readError != nil {
+		if context.Err() != nil {
+			return false, readError
+		}
+
 		return false, nil
 	}
 
-	answer = strings.ToLower(strings.TrimSpace(answer))
+	answer = strings.ToLower(answer)
 
 	return answer == "y" || answer == "yes", nil
 }
@@ -215,7 +256,7 @@ type Choice struct {
 }
 
 // Menu shows numbered choices and returns the chosen index.
-func (terminal *Terminal) Menu(title string, choices []Choice) (int, error) {
+func (terminal *Terminal) Menu(context context.Context, title string, choices []Choice) (int, error) {
 	if !terminal.IsInteractive {
 		return 0, ErrNoTerminal
 	}
@@ -232,12 +273,12 @@ func (terminal *Terminal) Menu(title string, choices []Choice) (int, error) {
 	for {
 		_, _ = fmt.Fprint(terminal.Out, terminal.style(">", STYLE_BOLD, STYLE_CYAN)+" ")
 
-		answer, readError := terminal.input.ReadString('\n')
-		if readError != nil && answer == "" {
-			return 0, errors.New("cancelled")
+		answer, readError := terminal.readLine(context)
+		if readError != nil {
+			return 0, readError
 		}
 
-		number, parseError := strconv.Atoi(strings.TrimSpace(answer))
+		number, parseError := strconv.Atoi(answer)
 		if parseError == nil && number >= 1 && number <= len(choices) {
 			_, _ = fmt.Fprintln(terminal.Out)
 

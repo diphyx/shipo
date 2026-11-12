@@ -152,7 +152,7 @@ push = "origin/main"
 }
 
 // Skill installs the AI skill for a tool, in the project or for the user.
-func (app *App) Skill(arguments []string) error {
+func (app *App) Skill(context context.Context, arguments []string) error {
 	if len(arguments) > 2 {
 		return errors.New("usage: shipo skill [tool] [project|user]")
 	}
@@ -172,7 +172,7 @@ func (app *App) Skill(arguments []string) error {
 			choices[index] = ui.Choice{Label: tool.Name, Detail: tool.Project}
 		}
 
-		index, menuError := app.UI.Menu("Install the shipo skill for:", choices)
+		index, menuError := app.UI.Menu(context, "Install the shipo skill for:", choices)
 		if menuError != nil {
 			return fmt.Errorf("%w; usage: shipo skill <%s> <project|user>", menuError, strings.Join(skill.ToolNames(), "|"))
 		}
@@ -188,7 +188,7 @@ func (app *App) Skill(arguments []string) error {
 	if scope == "" {
 		choices := []ui.Choice{{Label: skill.SCOPE_PROJECT, Detail: tool.Project}, {Label: skill.SCOPE_USER, Detail: "~/" + tool.User}}
 
-		index, menuError := app.UI.Menu("Install it in:", choices)
+		index, menuError := app.UI.Menu(context, "Install it in:", choices)
 		if menuError != nil {
 			return fmt.Errorf("%w; usage: shipo skill %s <project|user>", menuError, tool.Name)
 		}
@@ -198,7 +198,7 @@ func (app *App) Skill(arguments []string) error {
 
 	projectRoot := app.Dir
 
-	root, rootError := git.NewGit(app.Runner, app.Dir).Root(context.Background())
+	root, rootError := git.NewGit(app.Runner, app.Dir).Root(context)
 	if rootError == nil {
 		projectRoot = root
 	}
