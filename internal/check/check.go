@@ -4,6 +4,7 @@ package check
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/diphyx/shipo/internal/scope/build"
 	"github.com/diphyx/shipo/internal/scope/publish"
 	"github.com/diphyx/shipo/internal/text/semver"
+	"github.com/diphyx/shipo/internal/tool/process"
 )
 
 // Item is one check or state line.
@@ -214,7 +216,7 @@ func remotes(context context.Context, plan *release.Release, options Options) []
 
 		fetchError := target.Git.Fetch(context, remote)
 		if fetchError != nil {
-			items = append(items, Item{Name: "remote", Detail: "git fetch " + remote + " failed"})
+			items = append(items, Item{Name: "remote", Detail: "git fetch " + remote + " failed" + reason(fetchError)})
 
 			continue
 		}
@@ -345,4 +347,16 @@ func errorOr(problem error, fallback string) string {
 	}
 
 	return fallback
+}
+
+// reason returns ": " and the last line a failed program printed, or nothing.
+func reason(problem error) string {
+	var exitError *process.ExitError
+	if !errors.As(problem, &exitError) || exitError.Stderr == "" {
+		return ""
+	}
+
+	lines := strings.Split(strings.TrimSpace(exitError.Stderr), "\n")
+
+	return ": " + strings.TrimSpace(lines[len(lines)-1])
 }

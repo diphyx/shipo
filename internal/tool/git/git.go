@@ -131,9 +131,10 @@ func (git *Git) RemoteURL(context context.Context, remote string) (string, error
 	return git.output(context, "remote", "get-url", remote)
 }
 
-// Fetch fetches a remote, with its tags.
+// Fetch fetches a remote's branches. Tags are left alone, so a local tag that
+// differs from the remote's, as after current moved it, can't fail the fetch.
 func (git *Git) Fetch(context context.Context, remote string) error {
-	return git.run(context, "fetch", "--quiet", "--tags", remote)
+	return git.run(context, "fetch", "--quiet", "--no-tags", remote)
 }
 
 // Resolve returns the hash of a revision, or "" if it doesn't exist.

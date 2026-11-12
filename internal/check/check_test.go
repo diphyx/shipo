@@ -281,3 +281,25 @@ func TestWorkflowFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestFetchIgnoresADifferentLocalTag(t *testing.T) {
+	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE})
+	repo.Git("tag", "--annotate", "v1.0.0", "--message", "first")
+	repo.Git("push", "--quiet", "origin", "v1.0.0")
+	repo.Git("tag", "--delete", "v1.0.0")
+	repo.Git("tag", "--annotate", "v1.0.0", "--message", "again")
+
+	items := Run(context.Background(), planned(t, repo, testkit.NewRunner(), semver.LEVEL_CURRENT), Everything())
+
+	remote, _ := item(items, "remote")
+	if !remote.IsOK {
+		t.Fatalf("a local tag that differs from the remote's must not fail the fetch: %+v", items)
+	}
+}
+
+func TestFetchFailureSaysWhy(t *testing.T) {
+	repo := testkit.NewRepo(t, "[publish]\npush = \"dead/main\"\n", map[string]string{"package.json": PACKAGE})
+	repo.Git("remote", "add", "dead", "/no/such/remote.git")
+
+	failure(t, Run(context.Background(), planned(t, repo, testkit.NewRunner(), semver.LEVEL_PATCH), Everything()), "remote", "git fetch dead failed: ")
+}
