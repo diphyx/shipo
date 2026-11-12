@@ -30,8 +30,6 @@ class Shipo < Formula
   version "${version}"
   license "MIT"
 
-  depends_on "git"
-
   on_macos do
     on_arm do
       url "https://github.com/diphyx/shipo/releases/download/${tag}/shipo_${version}_darwin_arm64.tar.gz"
