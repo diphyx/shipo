@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -213,7 +214,7 @@ func TestReleaseFiles(t *testing.T) {
 
 		relative := make([]string, len(got))
 		for index, file := range got {
-			relative[index] = current.release.Config.Rel(file)
+			relative[index] = filepath.ToSlash(current.release.Config.Rel(file))
 		}
 
 		if !testCase.fail && len(got) > 0 && !reflect.DeepEqual(relative, testCase.want) {

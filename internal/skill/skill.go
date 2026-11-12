@@ -77,11 +77,14 @@ func Path(tool Tool, scope string, projectRoot string, home string) (string, err
 	return "", fmt.Errorf("unknown scope %q: want project or user", scope)
 }
 
-var versionLine = regexp.MustCompile(`(?m)^shipo-version: (.+)$`)
+var versionLine = regexp.MustCompile(`(?m)^shipo-version: ([^\r\n]+)`)
 
-// Render returns the skill content stamped with the shipo version.
+// Render returns the skill content stamped with the shipo version. Line
+// endings are LF, whatever the checkout used.
 func Render(version string) string {
-	return strings.Replace(Content, "\n---\n", "\nshipo-version: "+version+"\n---\n", 1)
+	content := strings.ReplaceAll(Content, "\r\n", "\n")
+
+	return strings.Replace(content, "\n---\n", "\nshipo-version: "+version+"\n---\n", 1)
 }
 
 // Install writes the skill. It returns the version it replaced, if any.

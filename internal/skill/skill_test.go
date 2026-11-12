@@ -81,6 +81,17 @@ func TestPaths(t *testing.T) {
 	}
 }
 
+func TestRenderCRLF(t *testing.T) {
+	original := Content
+	defer func() { Content = original }()
+
+	Content = strings.ReplaceAll(original, "\n", "\r\n")
+
+	if got := Render("2.0.0"); strings.Contains(got, "\r") || !strings.Contains(got, "shipo-version: 2.0.0\n---\n") {
+		t.Fatalf("a CRLF checkout must render the same skill:\n%q", got[:120])
+	}
+}
+
 func TestInstallErrors(t *testing.T) {
 	dir := t.TempDir()
 
@@ -99,12 +110,14 @@ func TestInstallErrors(t *testing.T) {
 }
 
 func TestContentIsValid(t *testing.T) {
-	if !strings.HasPrefix(Content, "---\nname: shipo\ndescription: ") || !strings.Contains(Content, "\n---\n") {
+	content := Render("1.0.0")
+
+	if !strings.HasPrefix(content, "---\nname: shipo\ndescription: ") || !strings.Contains(content, "shipo-version: 1.0.0\n---\n") {
 		t.Fatal("SKILL.md must start with name and description front matter")
 	}
 
 	for _, needed := range []string{"[version]", "[bump]", "[build]", "[publish]", "shipo check", "Never run `shipo`"} {
-		if !strings.Contains(Content, needed) {
+		if !strings.Contains(content, needed) {
 			t.Fatalf("SKILL.md misses %q", needed)
 		}
 	}
