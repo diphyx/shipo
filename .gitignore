@@ -1,0 +1,18 @@
+# Binaries
+/shipo
+/custom-gcl
+*.exe
+
+# golangci-lint custom build artifacts
+.custom-gcl/
+
+# Go
+*.test
+*.out
+/dist/
+/bin/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
