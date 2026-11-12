@@ -63,7 +63,7 @@ func Run(arguments []string, version string) int {
 	app := &App{UI: ui.NewTerminal(), Runner: process.System{}, Dir: dir, Version: version}
 
 	runError := app.Dispatch(signalContext, arguments)
-	if runError != nil && signalContext.Err() != nil {
+	if runError != nil && (signalContext.Err() != nil || errors.Is(runError, ui.ErrCancelled)) {
 		app.UI.Error(ui.ErrCancelled)
 
 		return EXIT_CANCELLED

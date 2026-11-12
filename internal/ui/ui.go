@@ -3,13 +3,10 @@
 package ui
 
 import (
-	"bufio"
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,12 +48,18 @@ type Terminal struct {
 	// IsLive is true when Out is a terminal, so a task can redraw its line.
 	IsLive bool
 
-	input     *bufio.Reader
+	input     io.Reader
 	size      func() int
 	spinEvery time.Duration
+	// keyFile is the terminal a menu puts in raw mode to read arrow keys. Nil
+	// means menus take a typed number.
+	keyFile *os.File
+	isKeys  bool
 
 	readOnce sync.Once
-	lines    chan string
+	chunks   chan []byte
+	pending  []byte
+	isEnded  bool
 }
 
 // NewTerminal returns a Terminal on the process's standard streams.
@@ -68,7 +71,9 @@ func NewTerminal() *Terminal {
 		IsColor:       isColorEnabled(os.Stdout),
 		IsErrorColor:  isColorEnabled(os.Stderr),
 		IsLive:        isTerminal(os.Stdout) && os.Getenv("TERM") != "dumb",
-		input:         bufio.NewReader(os.Stdin),
+		input:         os.Stdin,
+		keyFile:       os.Stdin,
+		isKeys:        isTerminal(os.Stdin) && isTerminal(os.Stdout) && os.Getenv("TERM") != "dumb",
 		size:          func() int { return terminalWidth(os.Stdout) },
 		spinEvery:     SPIN_EVERY,
 	}
@@ -76,7 +81,7 @@ func NewTerminal() *Terminal {
 
 // NewTestTerminal returns a plain Terminal that reads answers from input.
 func NewTestTerminal(out io.Writer, input string, isInteractive bool) *Terminal {
-	return &Terminal{Out: out, Err: out, IsInteractive: isInteractive, input: bufio.NewReader(strings.NewReader(input))}
+	return &Terminal{Out: out, Err: out, IsInteractive: isInteractive, input: strings.NewReader(input)}
 }
 
 func isTerminal(file *os.File) bool {
@@ -198,109 +203,5 @@ func (terminal *Terminal) Block(label string, lines []string) {
 		}
 
 		_, _ = fmt.Fprintln(terminal.Out, terminal.style(pad(name, LABEL_WIDTH), STYLE_BOLD)+" "+line)
-	}
-}
-
-// readLines starts the one reader of the input. It hands each line to the
-// prompt that waits for it, and closes lines at the end of input.
-func (terminal *Terminal) readLines() {
-	terminal.lines = make(chan string)
-
-	go func() {
-		defer close(terminal.lines)
-
-		for {
-			answer, readError := terminal.input.ReadString('\n')
-			if answer != "" {
-				terminal.lines <- answer
-			}
-
-			if readError != nil {
-				return
-			}
-		}
-	}()
-}
-
-// readLine reads one answer. It stops at once when the context is cancelled,
-// as Ctrl-C does, instead of waiting for the reader.
-func (terminal *Terminal) readLine(context context.Context) (string, error) {
-	terminal.readOnce.Do(terminal.readLines)
-
-	select {
-	case <-context.Done():
-		{
-			_, _ = fmt.Fprintln(terminal.Out)
-
-			return "", ErrCancelled
-		}
-	case answer, isOpen := <-terminal.lines:
-		{
-			if !isOpen {
-				return "", ErrCancelled
-			}
-
-			return strings.TrimSpace(answer), nil
-		}
-	}
-}
-
-// Confirm asks a yes/no question. No is the default, and so is the end of input.
-func (terminal *Terminal) Confirm(context context.Context, question string) (bool, error) {
-	if !terminal.IsInteractive {
-		return false, ErrNoTerminal
-	}
-
-	_, _ = fmt.Fprint(terminal.Out, terminal.style(question, STYLE_BOLD)+" "+terminal.style("[y/N]", STYLE_DIM)+" ")
-
-	answer, readError := terminal.readLine(context)
-	if readError != nil {
-		if context.Err() != nil {
-			return false, readError
-		}
-
-		return false, nil
-	}
-
-	answer = strings.ToLower(answer)
-
-	return answer == "y" || answer == "yes", nil
-}
-
-// Choice is one menu entry.
-type Choice struct {
-	Label  string
-	Detail string
-}
-
-// Menu shows numbered choices and returns the chosen index.
-func (terminal *Terminal) Menu(context context.Context, title string, choices []Choice) (int, error) {
-	if !terminal.IsInteractive {
-		return 0, ErrNoTerminal
-	}
-
-	_, _ = fmt.Fprintf(terminal.Out, "%s\n\n", terminal.style(title, STYLE_BOLD))
-
-	for index, choice := range choices {
-		number := terminal.style(strconv.Itoa(index+1)+")", STYLE_DIM)
-		arrow := terminal.style("→", STYLE_DIM)
-
-		_, _ = fmt.Fprintf(terminal.Out, "  %s %s %s %s\n", number, pad(choice.Label, MENU_WIDTH), arrow, terminal.style(choice.Detail, STYLE_BOLD))
-	}
-
-	for {
-		_, _ = fmt.Fprint(terminal.Out, terminal.style(">", STYLE_BOLD, STYLE_CYAN)+" ")
-
-		answer, readError := terminal.readLine(context)
-		if readError != nil {
-			return 0, readError
-		}
-
-		number, parseError := strconv.Atoi(answer)
-		if parseError == nil && number >= 1 && number <= len(choices) {
-			_, _ = fmt.Fprintln(terminal.Out)
-
-			return number - 1, nil
-		}
 	}
 }
