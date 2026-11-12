@@ -1,6 +1,6 @@
 # shipo
 
-**Releases out of the box.** One binary and a few lines of config: bump, tag, build and publish any repo.
+**Ship out of the box.** One binary and a few lines of config: bump, tag, build and publish any repo.
 
 ![checks, version, bump and build run locally and are undone on failure; publish sends the release out and is never undone](docs/_media/flow.svg)
 

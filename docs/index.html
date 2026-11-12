@@ -3,11 +3,11 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>shipo · Releases out of the box</title>
+        <title>shipo · Ship out of the box</title>
         <meta name="description" content="shipo: one binary and a few lines of config: bump, tag, build and publish any repo" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://diphyx.github.io/shipo/" />
-        <meta property="og:title" content="shipo · Releases out of the box" />
+        <meta property="og:title" content="shipo · Ship out of the box" />
         <meta property="og:description" content="One binary and a few lines of config: bump, tag, build and publish any repo" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css" />
         <style>
@@ -116,7 +116,7 @@
         <div id="app"></div>
         <script>
             window.$docsify = {
-                name: '<span class="brand-name">SHIPO</span><span class="brand-tag">Releases out of the box</span>',
+                name: '<span class="brand-name">SHIPO</span><span class="brand-tag">Ship out of the box</span>',
                 nameLink: "#/",
                 autoHeader: true,
                 loadSidebar: true,
@@ -128,7 +128,7 @@
                         hook.doneEach(function () {
                             var heading = document.querySelector(".markdown-section h1");
                             var page = heading ? heading.textContent.trim() : "";
-                            document.title = page && page !== "shipo" ? page + " · shipo" : "shipo · Releases out of the box";
+                            document.title = page && page !== "shipo" ? page + " · shipo" : "shipo · Ship out of the box";
 
                             // mark the page's link active, also on section links (?id=)
                             var path = location.hash.split("?")[0] || "#/";

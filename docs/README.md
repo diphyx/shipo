@@ -1,6 +1,6 @@
 # shipo
 
-**Releases out of the box**
+**Ship out of the box**
 
 > One binary and a few lines of config: bump, tag, build and publish any repo
 
