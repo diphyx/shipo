@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 const CLEAR = "\r\x1b[2K"
@@ -38,7 +39,7 @@ func TestTaskShowsLatestLine(t *testing.T) {
 
 	_, _ = fmt.Fprint(task, "added 1 package\nadded 312 packages\n")
 
-	if got := screen(output.String()); got != "… build      [1/1] npm ci  › added 312 packages" {
+	if got := screen(output.String()); got != "⠋ build      [1/1] npm ci  › added 312 packages" {
 		t.Fatalf("live line = %q", got)
 	}
 
@@ -55,7 +56,7 @@ func TestTaskPartialAndCarriageReturn(t *testing.T) {
 
 	_, _ = fmt.Fprint(task, "Writing objects:  50%\rWriting objects: 100%")
 
-	if got := screen(output.String()); got != "… push       origin/main  › Writing objects: 100%" {
+	if got := screen(output.String()); got != "⠋ push       origin/main  › Writing objects: 100%" {
 		t.Fatalf("live line = %q", got)
 	}
 
@@ -142,5 +143,26 @@ func TestTaskFailWithoutTerminal(t *testing.T) {
 func TestCut(t *testing.T) {
 	if cut("short", 10) != "short" || cut("abcdefghij", 5) != "abcd…" {
 		t.Fatal("cut")
+	}
+}
+
+func TestTaskSpins(t *testing.T) {
+	terminal, output := live(80)
+	terminal.spinEvery = 5 * time.Millisecond
+
+	task := terminal.Start("checks", "")
+	time.Sleep(60 * time.Millisecond)
+	task.Done()
+
+	text := output.String()
+	if !strings.Contains(text, "⠋") || !strings.Contains(text, "⠙") {
+		t.Fatalf("the spinner must turn while the step waits: %q", text)
+	}
+
+	after := output.Len()
+	time.Sleep(30 * time.Millisecond)
+
+	if output.Len() != after {
+		t.Fatal("the spinner must stop when the step ends")
 	}
 }

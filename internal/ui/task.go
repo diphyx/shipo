@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 // The live line and the failure report.
@@ -12,7 +13,11 @@ const (
 	TAIL_LINES    = 20
 	DEFAULT_WIDTH = 80
 	TAIL_PREFIX   = "  │ "
+	SPIN_EVERY    = 90 * time.Millisecond
 )
+
+// spinFrames turn while a live step waits, so a silent wait still moves.
+var spinFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 var escapePattern = regexp.MustCompile(`\x1b\[[0-9;?]*[A-Za-z]|\x1b\][^\x07]*\x07`)
 
@@ -29,19 +34,55 @@ type Task struct {
 	partial strings.Builder
 	latest  string
 	tail    []string
+	frame   int
+	stop    chan struct{}
+	isDone  bool
 }
 
 // Start shows a step as running and returns it, to follow its program.
 func (terminal *Terminal) Start(label string, detail string) *Task {
 	task := &Task{terminal: terminal, label: label, detail: detail}
 
-	if terminal.IsLive {
-		task.draw()
-	} else {
+	if !terminal.IsLive {
 		terminal.Running(label, detail)
+
+		return task
+	}
+
+	task.stop = make(chan struct{})
+	task.draw()
+
+	if terminal.spinEvery > 0 {
+		go task.spin(terminal.spinEvery)
 	}
 
 	return task
+}
+
+// spin turns the spinner until the step ends.
+func (task *Task) spin(every time.Duration) {
+	ticker := time.NewTicker(every)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-task.stop:
+			{
+				return
+			}
+		case <-ticker.C:
+			{
+				task.mutex.Lock()
+
+				if !task.isDone {
+					task.frame++
+					task.draw()
+				}
+
+				task.mutex.Unlock()
+			}
+		}
+	}
 }
 
 // Write takes the program's output. On a terminal only its latest line is
@@ -99,8 +140,14 @@ func (task *Task) endLine(isKept bool) {
 // draw rewrites the live line: the running step, then the latest output.
 func (task *Task) draw() {
 	terminal := task.terminal
-	head := terminal.mark(terminal.IsColor, MARK_RUNNING) + " " + terminal.style(pad(task.label, LABEL_WIDTH), STYLE_BOLD) + " " + task.detail
-	visible := 2 + LABEL_WIDTH + 1 + len([]rune(task.detail))
+	spinner := paint(terminal.IsColor, spinFrames[task.frame%len(spinFrames)], STYLE_BOLD, STYLE_CYAN)
+	head := spinner + " " + terminal.style(pad(task.label, LABEL_WIDTH), STYLE_BOLD)
+	visible := 2 + LABEL_WIDTH
+
+	if task.detail != "" {
+		head += " " + task.detail
+		visible += 1 + len([]rune(task.detail))
+	}
 
 	latest := strings.TrimSpace(escapePattern.ReplaceAllString(task.partial.String(), ""))
 	if latest == "" {
@@ -143,10 +190,28 @@ func (task *Task) Fail() {
 	}
 }
 
+// Clear ends the step and leaves nothing behind: for a wait whose result is
+// printed some other way.
+func (task *Task) Clear() {
+	task.finish()
+}
+
+// FailAs ends the step as failed with another detail, and no tail: for steps
+// that print their own reasons, such as the checks.
+func (task *Task) FailAs(detail string) {
+	task.finish()
+	task.terminal.Fail(task.label, detail)
+}
+
 func (task *Task) finish() {
 	task.mutex.Lock()
 	defer task.mutex.Unlock()
 
+	if !task.isDone && task.stop != nil {
+		close(task.stop)
+	}
+
+	task.isDone = true
 	task.endLine(true)
 
 	if task.terminal.IsLive {

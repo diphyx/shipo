@@ -11,6 +11,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"golang.org/x/term"
 )
@@ -49,8 +51,12 @@ type Terminal struct {
 	// IsLive is true when Out is a terminal, so a task can redraw its line.
 	IsLive bool
 
-	input *bufio.Reader
-	size  func() int
+	input     *bufio.Reader
+	size      func() int
+	spinEvery time.Duration
+
+	readOnce sync.Once
+	lines    chan string
 }
 
 // NewTerminal returns a Terminal on the process's standard streams.
@@ -64,6 +70,7 @@ func NewTerminal() *Terminal {
 		IsLive:        isTerminal(os.Stdout) && os.Getenv("TERM") != "dumb",
 		input:         bufio.NewReader(os.Stdin),
 		size:          func() int { return terminalWidth(os.Stdout) },
+		spinEvery:     SPIN_EVERY,
 	}
 }
 
@@ -194,20 +201,31 @@ func (terminal *Terminal) Block(label string, lines []string) {
 	}
 }
 
+// readLines starts the one reader of the input. It hands each line to the
+// prompt that waits for it, and closes lines at the end of input.
+func (terminal *Terminal) readLines() {
+	terminal.lines = make(chan string)
+
+	go func() {
+		defer close(terminal.lines)
+
+		for {
+			answer, readError := terminal.input.ReadString('\n')
+			if answer != "" {
+				terminal.lines <- answer
+			}
+
+			if readError != nil {
+				return
+			}
+		}
+	}()
+}
+
 // readLine reads one answer. It stops at once when the context is cancelled,
 // as Ctrl-C does, instead of waiting for the reader.
 func (terminal *Terminal) readLine(context context.Context) (string, error) {
-	type reply struct {
-		answer string
-		err    error
-	}
-
-	replies := make(chan reply, 1)
-
-	go func() {
-		answer, readError := terminal.input.ReadString('\n')
-		replies <- reply{answer: answer, err: readError}
-	}()
+	terminal.readOnce.Do(terminal.readLines)
 
 	select {
 	case <-context.Done():
@@ -216,13 +234,13 @@ func (terminal *Terminal) readLine(context context.Context) (string, error) {
 
 			return "", ErrCancelled
 		}
-	case got := <-replies:
+	case answer, isOpen := <-terminal.lines:
 		{
-			if got.err != nil && got.answer == "" {
+			if !isOpen {
 				return "", ErrCancelled
 			}
 
-			return strings.TrimSpace(got.answer), nil
+			return strings.TrimSpace(answer), nil
 		}
 	}
 }
