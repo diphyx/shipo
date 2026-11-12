@@ -42,7 +42,16 @@ command = "npm publish"
 
 ## Docs
 
-The guide is in [docs/](docs/README.md): [Get Started](docs/start.md), [.shipo](docs/config.md), [Commands](docs/commands.md), [Recipes](docs/recipes.md), [Troubleshooting](docs/troubleshooting.md). Serve it with `npx docsify-cli serve docs`.
+| Page                                        | For                                           |
+| ------------------------------------------- | --------------------------------------------- |
+| [Get Started](docs/start.md)                | install, a first `.shipo`, a first release    |
+| [.shipo](docs/config.md)                    | every key, TOML or YAML, monorepos            |
+| [Commands](docs/commands.md)                | the flow, the steps, `check` and the output   |
+| [Recipes](docs/recipes.md)                  | ready configs for npm, Go, Python, Rust, Docker |
+| [Troubleshooting](docs/troubleshooting.md)  | each error and its fix                        |
+| [Agents](docs/AGENTS.md)                    | the one-page reference for AI agents          |
+
+To browse them as a site: `npx docsify-cli serve docs`.
 
 ## License
 
