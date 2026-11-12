@@ -5,6 +5,7 @@ package check
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -60,6 +61,14 @@ type Options struct {
 	IsBuild bool
 	// Tasks are the publish tasks to check.
 	Tasks []string
+	// Progress, when set, gets one line for each check as it starts.
+	Progress io.Writer
+}
+
+func (options Options) report(text string) {
+	if options.Progress != nil {
+		_, _ = fmt.Fprintln(options.Progress, text)
+	}
 }
 
 // Everything checks the whole flow.
@@ -73,9 +82,12 @@ func Run(context context.Context, plan *release.Release, options Options) []Item
 
 	var items []Item
 
+	options.report("checking tools")
 	items = append(items, tools(context, target, options))
 
 	if options.IsBump {
+		options.report("checking the working tree")
+
 		isClean, cleanError := target.Git.IsClean(context)
 		items = append(items, Item{Name: "tree", IsOK: cleanError == nil && isClean, Detail: pick(isClean, "clean", "has changes; commit or stash them")})
 
@@ -86,15 +98,18 @@ func Run(context context.Context, plan *release.Release, options Options) []Item
 	}
 
 	if publish.IsSet(target, publish.TASK_PUSH) && containsTask(options.Tasks, publish.TASK_PUSH) {
-		items = append(items, remotes(context, plan, options.IsBump)...)
+		items = append(items, remotes(context, plan, options)...)
 	}
 
 	if options.IsBuild && build.IsSet(target) {
+		options.report("checking the build")
+
 		buildError := build.Check(target)
 		items = append(items, Item{Name: "build", IsOK: buildError == nil, Detail: errorOr(buildError, target.Config.Rel(build.Dir(target)))})
 	}
 
 	if publish.IsSet(target, publish.TASK_WORKFLOW) && containsTask(options.Tasks, publish.TASK_WORKFLOW) {
+		options.report("checking the workflows")
 		items = append(items, workflows(target)...)
 	}
 
@@ -178,7 +193,8 @@ func tools(context context.Context, target *release.Target, options Options) Ite
 	return Item{Name: "tools", IsOK: true, Detail: strings.Join(names, ", ")}
 }
 
-func remotes(context context.Context, plan *release.Release, isBump bool) []Item {
+func remotes(context context.Context, plan *release.Release, options Options) []Item {
+	isBump := options.IsBump
 	target := plan.Target
 
 	var items []Item
@@ -193,6 +209,8 @@ func remotes(context context.Context, plan *release.Release, isBump bool) []Item
 
 			continue
 		}
+
+		options.report("fetching " + remote)
 
 		fetchError := target.Git.Fetch(context, remote)
 		if fetchError != nil {
@@ -219,6 +237,8 @@ func remotes(context context.Context, plan *release.Release, isBump bool) []Item
 		}
 
 		if isBump && plan.Level != semver.LEVEL_CURRENT {
+			options.report("checking tag " + plan.Tag + " on " + remote)
+
 			isTaken, _ := target.Git.HasRemoteTag(context, remote, plan.Tag)
 			if isTaken {
 				items = append(items, Item{Name: "tag", Detail: plan.Tag + " already exists on " + remote})
