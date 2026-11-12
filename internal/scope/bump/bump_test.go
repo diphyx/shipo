@@ -202,3 +202,27 @@ func TestRevert(t *testing.T) {
 		t.Fatal("Revert did not restore the base")
 	}
 }
+
+func TestRevertAfterCtrlC(t *testing.T) {
+	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE})
+	output, _ := terminal()
+
+	planned := plan(t, repo, testkit.NewRunner(), semver.LEVEL_PATCH)
+
+	result, createError := Create(context.Background(), planned, output)
+	if createError != nil {
+		t.Fatal(createError)
+	}
+
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	revertError := Revert(cancelled, planned.Target, result)
+	if revertError != nil {
+		t.Fatalf("the undo must finish after Ctrl-C: %v", revertError)
+	}
+
+	if repo.Git("rev-parse", "HEAD") != result.Base || repo.Git("tag") != "" {
+		t.Fatal("the bump was not undone")
+	}
+}

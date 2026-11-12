@@ -26,15 +26,18 @@ type Result struct {
 
 // Revert undoes a bump: it deletes the tag and resets to the base commit.
 // The working tree was clean before the bump, so nothing of the user's is lost.
-func Revert(context context.Context, target *release.Target, result *Result) error {
+// It runs even when the context is cancelled, so Ctrl-C can't stop it halfway.
+func Revert(parent context.Context, target *release.Target, result *Result) error {
+	detached := context.WithoutCancel(parent)
+
 	var revertErrors []error
 
 	if result.IsTagged {
-		revertErrors = append(revertErrors, target.Git.DeleteTag(context, result.Tag))
+		revertErrors = append(revertErrors, target.Git.DeleteTag(detached, result.Tag))
 	}
 
 	if result.Base != "" {
-		revertErrors = append(revertErrors, target.Git.ResetHard(context, result.Base))
+		revertErrors = append(revertErrors, target.Git.ResetHard(detached, result.Base))
 	}
 
 	return errors.Join(revertErrors...)
