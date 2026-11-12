@@ -149,15 +149,15 @@
         <script>
             // ```shipo blocks: shipo's terminal output, in the same colors as the CLI
             (function () {
-                // a step line: "✓ label  detail"; the mark is colored and the label is bold
+                // a step line: "✓ label  detail"; the mark, a regex, is colored and the label is bold
                 function step(mark, style, isDetailDim) {
                     var inside = {};
                     if (isDetailDim) {
                         inside["shipo-dim"] = { pattern: /(^\S+ \S+ +).+$/, lookbehind: true };
                     }
                     inside["shipo-bold"] = { pattern: /(^\S+ )\S+/, lookbehind: true };
-                    inside["shipo-mark"] = { pattern: new RegExp("^\\" + mark), alias: style };
-                    return { pattern: new RegExp("^\\" + mark + " \\S+.*$", "m"), inside: inside };
+                    inside["shipo-mark"] = { pattern: new RegExp("^" + mark), alias: style };
+                    return { pattern: new RegExp("^" + mark + " \\S+.*$", "m"), inside: inside };
                 }
 
                 Prism.languages.shipo = {
@@ -166,7 +166,7 @@
                     "shipo-command": { pattern: /^\$ .*$/m, alias: "shipo-bold" },
                     "shipo-step-done": step("✓", "shipo-done", false),
                     "shipo-step-fail": step("✗", "shipo-fail", false),
-                    "shipo-step-running": step("…", "shipo-running", false),
+                    "shipo-step-running": step("[…⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]", "shipo-running", false),
                     "shipo-step-skip": step("-", "shipo-dim", true),
                     "shipo-heading": { pattern: /^(?:checks|plan|release(?: \S+)?)$/m, alias: "shipo-bold" },
                     "shipo-title": { pattern: /^\S+ \(\d+\.\d+\.\d+[^)]*\)$/m, alias: "shipo-bold" },
@@ -183,7 +183,7 @@
                     "shipo-prompt": /^> /m,
                     "shipo-done": /✓/,
                     "shipo-fail": /✗/,
-                    "shipo-running": /…/,
+                    "shipo-running": /[…⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/,
                 };
             })();
         </script>

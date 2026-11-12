@@ -23,7 +23,7 @@ Each command runs **directly, without a shell**, the same on every OS:
 While a command runs, one line follows its latest output; when it ends, only the result stays:
 
 ```shipo
-… build      [2/2] npm run build  › vite v5.4.0 building for production...
+⠹ build      [2/2] npm run build  › vite v5.4.0 building for production...
 ```
 
 ```shipo

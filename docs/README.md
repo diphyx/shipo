@@ -15,6 +15,8 @@ javascript (1.4.0)
   3) major    → 2.0.0
   4) current  → 1.4.0
 
+✓ bump       minor · 1.4.0 → 1.5.0
+✓ checks     tools, tree, remote, build
 ✓ version    package.json → 1.5.0
 ✓ commit     chore: release v1.5.0
 ✓ tag        v1.5.0

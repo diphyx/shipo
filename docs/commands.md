@@ -81,7 +81,7 @@ tag      web/v1.4.0
 | Mark | Means   |
 | ---- | ------- |
 | `✓`  | done    |
-| `…`  | running |
+| `⠹`  | running: a spinner on a terminal, `…` elsewhere |
 | `-`  | skipped |
 | `✗`  | failed  |
 
