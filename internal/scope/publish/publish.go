@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -143,6 +144,13 @@ func Push(context context.Context, plan *release.Release, output *ui.Terminal) e
 
 		task := output.Start("push", entry+" + "+plan.Tag)
 
+		replaceError := replaceRemoteTag(context, plan, task, remote)
+		if replaceError != nil {
+			task.Fail()
+
+			return fmt.Errorf("push to %s: %w", entry, replaceError)
+		}
+
 		pushError := plan.Git.PushAtomic(context, task, remote, refspecs...)
 		if pushError != nil {
 			task.Fail()
@@ -163,6 +171,21 @@ func Push(context context.Context, plan *release.Release, output *ui.Terminal) e
 	}
 
 	return nil
+}
+
+// replaceRemoteTag deletes the tag on the remote before current pushes it
+// again, so the push is a new tag event and tag workflows run again.
+func replaceRemoteTag(context context.Context, plan *release.Release, output io.Writer, remote string) error {
+	if plan.Level != semver.LEVEL_CURRENT {
+		return nil
+	}
+
+	isRemote, _ := plan.Git.HasRemoteTag(context, remote, plan.Tag)
+	if !isRemote {
+		return nil
+	}
+
+	return plan.Git.DeleteRemoteTag(context, output, remote, plan.Tag)
 }
 
 // ReleaseFiles expands the release paths into files. Each path must match.

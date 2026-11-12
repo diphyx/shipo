@@ -108,8 +108,9 @@ func TestCreateGitTagOnly(t *testing.T) {
 	}
 }
 
-func TestCreateCurrent(t *testing.T) {
+func TestCreateCurrentKeepsTagOnHead(t *testing.T) {
 	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE})
+	repo.Git("tag", "--annotate", "v1.0.0", "--message", "Release v1.0.0")
 	head := repo.Git("rev-parse", "HEAD")
 	output, printed := terminal()
 
@@ -118,12 +119,60 @@ func TestCreateCurrent(t *testing.T) {
 		t.Fatal(createError)
 	}
 
-	if result.IsCommitted || result.IsTagged || repo.Git("rev-parse", "HEAD") != head || repo.Git("tag") != "" {
-		t.Fatal("current must change nothing")
+	if result.IsCommitted || result.IsTagged || result.MovedFrom != "" || repo.Git("rev-parse", "HEAD") != head {
+		t.Fatalf("a tag already on HEAD must stay: %+v", result)
 	}
 
-	if !strings.Contains(printed.String(), "- version    1.0.0 (current)") {
+	if !strings.Contains(printed.String(), "- version    1.0.0 (current)") || !strings.Contains(printed.String(), "- tag        v1.0.0 (on HEAD)") {
 		t.Fatalf("output:\n%s", printed)
+	}
+}
+
+func TestCreateCurrentTagsHead(t *testing.T) {
+	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE})
+	output, _ := terminal()
+
+	result, createError := Create(context.Background(), plan(t, repo, testkit.NewRunner(), semver.LEVEL_CURRENT), output)
+	if createError != nil {
+		t.Fatal(createError)
+	}
+
+	if !result.IsTagged || result.IsCommitted || repo.Git("tag", "--points-at", "HEAD") != "v1.0.0" {
+		t.Fatalf("a missing tag is created on HEAD, with no commit: %+v", result)
+	}
+}
+
+func TestCreateCurrentMovesTag(t *testing.T) {
+	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE})
+	old := repo.Git("rev-parse", "HEAD")
+	repo.Git("tag", "--annotate", "v1.0.0", "--message", "Release v1.0.0")
+	repo.Write(map[string]string{"fix.txt": "fixed\n"})
+	repo.Commit("fix: the release")
+	head := repo.Git("rev-parse", "HEAD")
+	output, printed := terminal()
+
+	planned := plan(t, repo, testkit.NewRunner(), semver.LEVEL_CURRENT)
+
+	result, createError := Create(context.Background(), planned, output)
+	if createError != nil {
+		t.Fatal(createError)
+	}
+
+	if result.MovedFrom != old || repo.Git("rev-parse", "v1.0.0^{commit}") != head {
+		t.Fatalf("the tag must move to HEAD: %+v", result)
+	}
+
+	if !strings.Contains(printed.String(), "✓ tag        v1.0.0 moved to HEAD") {
+		t.Fatalf("output:\n%s", printed)
+	}
+
+	revertError := Revert(context.Background(), planned.Target, result)
+	if revertError != nil {
+		t.Fatal(revertError)
+	}
+
+	if repo.Git("rev-parse", "v1.0.0^{commit}") != old || repo.Git("rev-parse", "HEAD") != head {
+		t.Fatal("the undo must put the tag back where it was, and keep HEAD")
 	}
 }
 

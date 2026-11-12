@@ -389,3 +389,30 @@ func TestCommandStopsOnFailure(t *testing.T) {
 		t.Fatal("want a parse error")
 	}
 }
+
+func TestPushCurrentReplacesRemoteTag(t *testing.T) {
+	current := tagged(t, "", nil)
+	repo := current.repo
+
+	firstError := Push(context.Background(), current.release, current.ui)
+	if firstError != nil {
+		t.Fatal(firstError)
+	}
+
+	repo.Git("tag", "--delete", "v1.1.0")
+	repo.Write(map[string]string{"fix.txt": "fixed\n"})
+	repo.Commit("fix: the release")
+	repo.Git("tag", "--annotate", "v1.1.0", "--message", "Release v1.1.0")
+
+	target, _ := release.Open(context.Background(), current.runner, repo.Work)
+	again, _ := release.FromHead(context.Background(), target)
+
+	pushError := Push(context.Background(), again, current.ui)
+	if pushError != nil {
+		t.Fatal(pushError)
+	}
+
+	if repo.RemoteGit("rev-parse", "v1.1.0^{commit}") != repo.Git("rev-parse", "HEAD") {
+		t.Fatal("current must replace the remote tag with the one on HEAD")
+	}
+}

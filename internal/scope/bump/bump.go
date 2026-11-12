@@ -22,6 +22,8 @@ type Result struct {
 	IsCommitted bool
 	IsTagged    bool
 	Tag         string
+	// MovedFrom is the commit the tag was on, when current moved it to HEAD.
+	MovedFrom string
 }
 
 // Revert undoes a bump: it deletes the tag and resets to the base commit.
@@ -34,6 +36,10 @@ func Revert(parent context.Context, target *release.Target, result *Result) erro
 
 	if result.IsTagged {
 		revertErrors = append(revertErrors, target.Git.DeleteTag(detached, result.Tag))
+	}
+
+	if result.MovedFrom != "" {
+		revertErrors = append(revertErrors, target.Git.TagAt(detached, result.Tag, result.MovedFrom, "Release "+result.Tag))
 	}
 
 	if result.Base != "" {
@@ -55,6 +61,14 @@ func Create(context context.Context, plan *release.Release, output *ui.Terminal)
 
 	if plan.Level == semver.LEVEL_CURRENT {
 		output.Skip("version", plan.Next.String()+" (current)")
+
+		tagError := retag(context, plan, output, result)
+		if tagError != nil {
+			revertError := Revert(context, plan.Target, result)
+
+			return nil, errors.Join(tagError, revertError)
+		}
+
 		plan.LoadHash(context)
 
 		return result, nil
@@ -139,6 +153,41 @@ func run(context context.Context, plan *release.Release, output *ui.Terminal, re
 
 	result.IsTagged = true
 	output.Done("tag", plan.Tag)
+
+	return nil
+}
+
+// retag puts the current version's tag on HEAD, so the same version can be
+// released again from a newer commit. A tag already on HEAD is kept; a tag on
+// another commit is moved, and Revert puts it back.
+func retag(context context.Context, plan *release.Release, output *ui.Terminal, result *Result) error {
+	tagged := plan.Git.Resolve(context, plan.Tag)
+
+	if tagged == result.Base {
+		output.Skip("tag", plan.Tag+" (on HEAD)")
+
+		return nil
+	}
+
+	detail := plan.Tag
+
+	if tagged != "" {
+		deleteError := plan.Git.DeleteTag(context, plan.Tag)
+		if deleteError != nil {
+			return deleteError
+		}
+
+		result.MovedFrom = tagged
+		detail += " moved to HEAD"
+	}
+
+	tagError := plan.Git.Tag(context, plan.Tag, "Release "+plan.Tag)
+	if tagError != nil {
+		return tagError
+	}
+
+	result.IsTagged = true
+	output.Done("tag", detail)
 
 	return nil
 }
