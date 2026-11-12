@@ -88,15 +88,17 @@ func Run(context context.Context, plan *release.Release, output *ui.Terminal) er
 	}
 
 	for index, command := range commands {
-		label := fmt.Sprintf("[%d/%d] %s", index+1, len(commands), command.String())
-		output.Running("build", label)
+		task := output.Start("build", fmt.Sprintf("[%d/%d] %s", index+1, len(commands), command.String()))
+		command.Output = task
 
 		runError := plan.Runner.Run(context, command)
 		if runError != nil {
+			task.Fail()
+
 			return runError
 		}
 
-		output.Done("build", label)
+		task.Done()
 	}
 
 	changed, changedError := plan.Git.ChangedTracked(context)

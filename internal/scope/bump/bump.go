@@ -92,13 +92,19 @@ func run(context context.Context, plan *release.Release, output *ui.Terminal, re
 		}
 
 		for _, lock := range locks {
-			lockError := plan.Runner.Run(context, lock.Command)
+			task := output.Start("lock", plan.Config.Rel(lock.File))
+			command := lock.Command
+			command.Output = task
+
+			lockError := plan.Runner.Run(context, command)
 			if lockError != nil {
+				task.Fail()
+
 				return fmt.Errorf("refresh %s: %w", plan.Config.Rel(lock.File), lockError)
 			}
 
 			changed = append(changed, lock.File)
-			output.Done("lock", plan.Config.Rel(lock.File))
+			task.Done()
 		}
 	} else {
 		output.Done("version", fmt.Sprintf("%s → %s (git tag)", plan.Previous, plan.Next))

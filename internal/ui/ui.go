@@ -42,8 +42,11 @@ type Terminal struct {
 	// IsColor and IsErrorColor turn on colors for Out and Err.
 	IsColor      bool
 	IsErrorColor bool
+	// IsLive is true when Out is a terminal, so a task can redraw its line.
+	IsLive bool
 
 	input *bufio.Reader
+	size  func() int
 }
 
 // NewTerminal returns a Terminal on the process's standard streams.
@@ -54,7 +57,9 @@ func NewTerminal() *Terminal {
 		IsInteractive: isTerminal(os.Stdin),
 		IsColor:       isColorEnabled(os.Stdout),
 		IsErrorColor:  isColorEnabled(os.Stderr),
+		IsLive:        isTerminal(os.Stdout) && os.Getenv("TERM") != "dumb",
 		input:         bufio.NewReader(os.Stdin),
+		size:          func() int { return terminalWidth(os.Stdout) },
 	}
 }
 
@@ -65,6 +70,24 @@ func NewTestTerminal(out io.Writer, input string, isInteractive bool) *Terminal 
 
 func isTerminal(file *os.File) bool {
 	return term.IsTerminal(int(file.Fd()))
+}
+
+func terminalWidth(file *os.File) int {
+	width, _, sizeError := term.GetSize(int(file.Fd()))
+	if sizeError != nil || width <= 0 {
+		return DEFAULT_WIDTH
+	}
+
+	return width
+}
+
+// width is the terminal's width in columns.
+func (terminal *Terminal) width() int {
+	if terminal.size == nil {
+		return DEFAULT_WIDTH
+	}
+
+	return terminal.size()
 }
 
 func (terminal *Terminal) style(text string, styles ...string) string {

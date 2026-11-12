@@ -141,12 +141,16 @@ func Push(context context.Context, plan *release.Release, output *ui.Terminal) e
 			refspecs = append(refspecs, "refs/heads/"+current)
 		}
 
-		pushError := plan.Git.PushAtomic(context, remote, refspecs...)
+		task := output.Start("push", entry+" + "+plan.Tag)
+
+		pushError := plan.Git.PushAtomic(context, task, remote, refspecs...)
 		if pushError != nil {
+			task.Fail()
+
 			return fmt.Errorf("push to %s: %w", entry, pushError)
 		}
 
-		output.Done("push", entry+" + "+plan.Tag)
+		task.Done()
 	}
 
 	_, mainBranch, _ := plan.Push()
@@ -230,17 +234,21 @@ func Release(context context.Context, plan *release.Release, output *ui.Terminal
 		}
 	}
 
-	createError := plan.GitHub.CreateRelease(context, github.Release{Tag: plan.Tag, Title: plan.Tag, Notes: notes, Files: files})
-	if createError != nil {
-		return createError
-	}
-
 	detail := plan.Tag
 	if len(files) > 0 {
 		detail += fmt.Sprintf(" + %d file(s)", len(files))
 	}
 
-	output.Done("release", detail)
+	task := output.Start("release", detail)
+
+	createError := plan.GitHub.CreateRelease(context, task, github.Release{Tag: plan.Tag, Title: plan.Tag, Notes: notes, Files: files})
+	if createError != nil {
+		task.Fail()
+
+		return createError
+	}
+
+	task.Done()
 
 	return nil
 }
@@ -269,14 +277,16 @@ func Workflow(context context.Context, plan *release.Release, output *ui.Termina
 			continue
 		}
 
-		output.Running("workflow", file+" "+run.URL)
+		task := output.Start("workflow", file+" "+run.URL)
 
-		watchError := plan.GitHub.WatchRun(context, run.ID)
+		watchError := plan.GitHub.WatchRun(context, task, run.ID)
 		if watchError != nil {
+			task.Fail()
+
 			return fmt.Errorf("workflow %s did not succeed: %s", file, run.URL)
 		}
 
-		output.Done("workflow", file)
+		task.DoneAs(file)
 	}
 
 	return nil
@@ -310,15 +320,17 @@ func Command(context context.Context, plan *release.Release, output *ui.Terminal
 		}
 
 		command.Dir = plan.Config.Dir
-		label := fmt.Sprintf("[%d/%d] %s", index+1, len(lines), line)
-		output.Running("command", label)
+		task := output.Start("command", fmt.Sprintf("[%d/%d] %s", index+1, len(lines), line))
+		command.Output = task
 
 		runError := plan.Runner.Run(context, command)
 		if runError != nil {
+			task.Fail()
+
 			return runError
 		}
 
-		output.Done("command", label)
+		task.Done()
 	}
 
 	return nil
