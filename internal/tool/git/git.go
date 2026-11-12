@@ -5,6 +5,7 @@ package git
 import (
 	"context"
 	"errors"
+	"io"
 	"path/filepath"
 	"strings"
 
@@ -187,9 +188,11 @@ func (git *Git) MoveBranch(context context.Context, branch string, revision stri
 	return git.run(context, "branch", "--force", branch, revision)
 }
 
-// PushAtomic pushes refspecs to a remote in one atomic push, streaming output.
-func (git *Git) PushAtomic(context context.Context, remote string, refspecs ...string) error {
-	arguments := append([]string{"push", "--atomic", remote}, refspecs...)
+// PushAtomic pushes refspecs to a remote in one atomic push. Its output goes
+// to output, or to the runner's streams when output is nil.
+func (git *Git) PushAtomic(context context.Context, output io.Writer, remote string, refspecs ...string) error {
+	command := git.command(append([]string{"push", "--atomic", remote}, refspecs...)...)
+	command.Output = output
 
-	return git.Runner.Run(context, git.command(arguments...))
+	return git.Runner.Run(context, command)
 }

@@ -166,7 +166,7 @@ func TestPushFetchAndRemoteTags(t *testing.T) {
 		t.Fatal("tag must not be on the remote yet")
 	}
 
-	pushError := git.PushAtomic(background, "origin", "HEAD:refs/heads/main", "refs/tags/v1.0.0")
+	pushError := git.PushAtomic(background, nil, "origin", "HEAD:refs/heads/main", "refs/tags/v1.0.0")
 	if pushError != nil {
 		t.Fatal(pushError)
 	}
@@ -185,7 +185,7 @@ func TestPushFetchAndRemoteTags(t *testing.T) {
 		t.Fatal("origin/main must be the pushed commit")
 	}
 
-	rejectedError := git.PushAtomic(background, "origin", "HEAD~1:refs/heads/main")
+	rejectedError := git.PushAtomic(background, nil, "origin", "HEAD~1:refs/heads/main")
 	if rejectedError == nil {
 		t.Fatal("a non-fast-forward push must fail")
 	}

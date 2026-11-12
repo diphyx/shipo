@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -197,7 +198,13 @@ func (runner *Runner) Run(context context.Context, command process.Command) erro
 		return runner.system().Run(context, command)
 	}
 
-	return runner.fake(command).Error
+	response := runner.fake(command)
+
+	if command.Output != nil && response.Output != "" {
+		_, _ = io.WriteString(command.Output, response.Output+"\n")
+	}
+
+	return response.Error
 }
 
 // Output runs a real program, or records and answers a fake one.

@@ -21,6 +21,9 @@ type Command struct {
 	Dir string
 	// Environment adds NAME=value entries on top of the current environment.
 	Environment []string
+	// Output receives the program's stdout and stderr while it runs. Nil means
+	// the runner's own streams.
+	Output io.Writer
 }
 
 // String returns the command as it would be typed.
@@ -63,11 +66,17 @@ type System struct {
 	Stderr io.Writer
 }
 
-// Run spawns the command, streaming its output.
+// Run spawns the command, streaming its output to command.Output, or to
+// Stdout and Stderr when that is nil.
 func (system System) Run(context context.Context, command Command) error {
 	process := system.build(context, command)
 	process.Stdout = orDefault(system.Stdout, os.Stdout)
 	process.Stderr = orDefault(system.Stderr, os.Stderr)
+
+	if command.Output != nil {
+		process.Stdout = command.Output
+		process.Stderr = command.Output
+	}
 
 	return wrap(command, process.Run(), "")
 }

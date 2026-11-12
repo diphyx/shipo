@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 
 	"github.com/diphyx/shipo/internal/tool/process"
@@ -68,8 +69,9 @@ type Release struct {
 	Files []string
 }
 
-// CreateRelease creates a release for an existing tag.
-func (github *GitHub) CreateRelease(context context.Context, release Release) error {
+// CreateRelease creates a release for an existing tag. Its output goes to
+// output, or to the runner's streams when output is nil.
+func (github *GitHub) CreateRelease(context context.Context, output io.Writer, release Release) error {
 	arguments := []string{"release", "create", release.Tag, "--verify-tag", "--title", release.Title}
 
 	if release.Notes == "" {
@@ -80,7 +82,10 @@ func (github *GitHub) CreateRelease(context context.Context, release Release) er
 
 	arguments = append(arguments, release.Files...)
 
-	return github.Runner.Run(context, github.command(arguments...))
+	command := github.command(arguments...)
+	command.Output = output
+
+	return github.Runner.Run(context, command)
 }
 
 var runPattern = regexp.MustCompile(`https?://\S+/actions/runs/(\d+)`)
@@ -112,9 +117,13 @@ func (github *GitHub) StartWorkflow(context context.Context, workflow string, re
 	return Run{ID: match[1], URL: match[0]}, nil
 }
 
-// WatchRun streams a run's status until it ends. It fails if the run fails.
-func (github *GitHub) WatchRun(context context.Context, id string) error {
-	return github.Runner.Run(context, github.command("run", "watch", id, "--exit-status"))
+// WatchRun follows a run until it ends, and fails if the run fails. Its
+// output goes to output, or to the runner's streams when output is nil.
+func (github *GitHub) WatchRun(context context.Context, output io.Writer, id string) error {
+	command := github.command("run", "watch", id, "--exit-status")
+	command.Output = output
+
+	return github.Runner.Run(context, command)
 }
 
 // RunState is the latest run of a workflow for a commit.

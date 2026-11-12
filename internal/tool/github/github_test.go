@@ -53,8 +53,8 @@ func TestCreateRelease(t *testing.T) {
 	github := NewGitHub(runner, "/repo")
 	background := context.Background()
 
-	generateError := github.CreateRelease(background, Release{Tag: "v1.0.0", Title: "v1.0.0", Files: []string{"dist/a.tgz", "dist/b.tgz"}})
-	keepError := github.CreateRelease(background, Release{Tag: "v1.0.0", Title: "v1.0.0", Notes: "kept"})
+	generateError := github.CreateRelease(background, nil, Release{Tag: "v1.0.0", Title: "v1.0.0", Files: []string{"dist/a.tgz", "dist/b.tgz"}})
+	keepError := github.CreateRelease(background, nil, Release{Tag: "v1.0.0", Title: "v1.0.0", Notes: "kept"})
 
 	if generateError != nil || keepError != nil {
 		t.Fatal(generateError, keepError)
@@ -108,11 +108,11 @@ func TestWatchRun(t *testing.T) {
 
 	github := NewGitHub(runner, "")
 
-	if github.WatchRun(context.Background(), "1") != nil {
+	if github.WatchRun(context.Background(), nil, "1") != nil {
 		t.Fatal("a successful run must not fail")
 	}
 
-	if github.WatchRun(context.Background(), "9") == nil {
+	if github.WatchRun(context.Background(), nil, "9") == nil {
 		t.Fatal("a failed run must fail")
 	}
 
