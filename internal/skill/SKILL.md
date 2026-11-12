@@ -57,5 +57,6 @@ shipo command
 - Never run `shipo` or `shipo <level>`; they are interactive and need a person.
 - Never put secrets in `.shipo`; it is committed. Each tool keeps its own login.
 - `release` and `workflow` need `push`; with `push = false` they are skipped.
+- `shipo bump current` re-releases the same version: it moves the tag to HEAD and re-pushes it. Ask the user before running it.
 - After a failure, run `shipo check` to see where the release stands, then run the missing step again.
 - If unsure, ask the user.

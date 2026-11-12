@@ -61,6 +61,8 @@ shipo command
 
 `shipo` and `shipo <level>` are the interactive flow: they need a person.
 
+`current` releases the same version again: no write, no commit; the tag goes on HEAD (moved from an older commit, if needed) and is pushed again, so tag workflows rerun. `shipo bump current` moves a tag without asking: ask the user first.
+
 ## The Skill
 
 `shipo skill <agents|claude|codex|cursor|copilot> <project|user>` installs this model as a `SKILL.md`.
