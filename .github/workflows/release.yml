@@ -1,7 +1,8 @@
 name: release
 
-# A tag like v1.2.3, pushed by `make publish` (shipo releasing itself), in order: test.yml; a
-# GitHub release with the binaries; then the Homebrew formula in diphyx/homebrew-tap.
+# A tag like v1.2.3, pushed by `make publish` (shipo releasing itself), in order: vet, lint and
+# every test; a GitHub release with the binaries; then the Homebrew formula in diphyx/homebrew-tap.
+# This is the only workflow: nothing runs on branch pushes or pull requests.
 on:
   push:
     tags: ["v*"]
@@ -11,10 +12,59 @@ permissions:
 
 jobs:
   test:
-    uses: ./.github/workflows/test.yml
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Vet for Windows
+        env:
+          GOOS: windows
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+
+  # The tests drive real git repositories; on Windows they run, but don't block the release.
+  windows:
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        run: go test ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+
+      - name: Lint
+        run: make lint
 
   release:
-    needs: test
+    needs: [test, lint]
     runs-on: ubuntu-latest
     env:
       TAG: ${{ github.ref_name }}

@@ -67,9 +67,9 @@ Show CLI output in ` ```shipo ` blocks: `docs/index.html` colors them like the t
 
 ## Release
 
-`make publish` runs shipo on itself (`.shipo`): it bumps the git tag and pushes it. The tag push starts `.github/workflows/release.yml`:
+`make publish` runs shipo on itself (`.shipo`): it bumps the git tag and pushes it. The tag push starts `.github/workflows/release.yml`, the only workflow; branch pushes and pull requests run nothing, so run `make test` and `make lint` before releasing:
 
-1. `test.yml`: vet, lint and every test.
+1. Vet, lint and every test, on Linux and macOS; Windows runs too, without blocking.
 2. `.github/scripts/package.sh` builds the archives and `checksums.txt`; `gh release create` publishes them.
 3. `.github/scripts/formula.sh` writes `Formula/shipo.rb` into `diphyx/homebrew-tap`, so `brew install diphyx/tap/shipo` gets it. Prereleases skip this step.
 
