@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>shipo · Releases out of the box</title>
+        <meta name="description" content="shipo: one binary and a few lines of config: bump, tag, build and publish any repo" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://diphyx.github.io/shipo/" />
+        <meta property="og:title" content="shipo · Releases out of the box" />
+        <meta property="og:description" content="One binary and a few lines of config: bump, tag, build and publish any repo" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css" />
+        <style>
+            :root {
+                --theme-color: #2f6fde;
+            }
+            .sidebar-nav > ul > li > a {
+                font-weight: 500;
+            }
+            .sidebar-nav > ul > li.active > a {
+                font-weight: 700;
+            }
+            .sidebar-toggle {
+                display: none;
+            }
+            .sidebar {
+                padding-top: 0;
+            }
+            .sidebar > h1.app-name {
+                margin: 0 0 20px;
+                padding: 20px 15px;
+                text-align: left;
+                border-bottom: 1px solid #eee;
+            }
+            .sidebar > h1.app-name a {
+                display: block;
+                text-decoration: none;
+            }
+            .brand-name {
+                display: block;
+                font-size: 2.2rem;
+                font-weight: 800;
+                line-height: 1;
+                color: var(--theme-color);
+            }
+            .brand-tag {
+                display: block;
+                white-space: nowrap;
+                margin-top: 10px;
+                font-size: 0.9rem;
+                font-weight: 500;
+                line-height: 1.4;
+                color: #2b3f47;
+            }
+            .markdown-section {
+                max-width: 860px;
+            }
+            .markdown-section code {
+                border-radius: 4px;
+            }
+            .markdown-section pre {
+                border-radius: 8px;
+            }
+            .markdown-section pre > code {
+                font-size: 0.85rem;
+                line-height: 1.55;
+            }
+            .markdown-section table {
+                display: table;
+                width: 100%;
+            }
+            .markdown-section td code,
+            .markdown-section th code {
+                white-space: nowrap;
+            }
+            .markdown-section blockquote {
+                border-left-color: var(--theme-color);
+            }
+            .markdown-section p.tip,
+            .markdown-section p.warn {
+                border-radius: 6px;
+            }
+            .markdown-section pre[data-lang="shipo"] {
+                background: #1e2530;
+            }
+            .markdown-section pre[data-lang="shipo"] > code {
+                color: #d8dee9;
+                background: transparent;
+            }
+            .markdown-section pre[data-lang="shipo"]::after {
+                display: none;
+            }
+            .token.shipo-bold {
+                font-weight: 700;
+                color: #eceff4;
+            }
+            .token.shipo-dim {
+                color: #7b8794;
+            }
+            .token.shipo-done {
+                font-weight: 700;
+                color: #3ddc84;
+            }
+            .token.shipo-fail {
+                font-weight: 700;
+                color: #ff6b6b;
+            }
+            .token.shipo-running,
+            .token.shipo-prompt {
+                font-weight: 700;
+                color: #4fd1e8;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app"></div>
+        <script>
+            window.$docsify = {
+                name: '<span class="brand-name">SHIPO</span><span class="brand-tag">Releases out of the box</span>',
+                nameLink: "#/",
+                autoHeader: true,
+                loadSidebar: true,
+                subMaxLevel: 0,
+                auto2top: true,
+                relativePath: true,
+                plugins: [
+                    function (hook) {
+                        hook.doneEach(function () {
+                            var heading = document.querySelector(".markdown-section h1");
+                            var page = heading ? heading.textContent.trim() : "";
+                            document.title = page && page !== "shipo" ? page + " · shipo" : "shipo · Releases out of the box";
+
+                            // mark the page's link active, also on section links (?id=)
+                            var path = location.hash.split("?")[0] || "#/";
+                            document.querySelectorAll(".sidebar-nav li").forEach(function (item) {
+                                var link = item.querySelector(":scope > a");
+                                var href = link ? link.getAttribute("href").split("?")[0] : null;
+                                item.classList.toggle("active", href === path);
+                            });
+                        });
+                    },
+                ],
+            };
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/docsify@4"></script>
+        <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-toml.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-yaml.min.js"></script>
+        <script>
+            // ```shipo blocks: shipo's terminal output, in the same colors as the CLI
+            (function () {
+                // a step line: "✓ label  detail"; the mark is colored and the label is bold
+                function step(mark, style, isDetailDim) {
+                    var inside = {};
+                    if (isDetailDim) {
+                        inside["shipo-dim"] = { pattern: /(^\S+ \S+ +).+$/, lookbehind: true };
+                    }
+                    inside["shipo-bold"] = { pattern: /(^\S+ )\S+/, lookbehind: true };
+                    inside["shipo-mark"] = { pattern: new RegExp("^\\" + mark), alias: style };
+                    return { pattern: new RegExp("^\\" + mark + " \\S+.*$", "m"), inside: inside };
+                }
+
+                Prism.languages.shipo = {
+                    "shipo-command": { pattern: /^\$ .*$/m, alias: "shipo-bold" },
+                    "shipo-step-done": step("✓", "shipo-done", false),
+                    "shipo-step-fail": step("✗", "shipo-fail", false),
+                    "shipo-step-running": step("…", "shipo-running", false),
+                    "shipo-step-skip": step("-", "shipo-dim", true),
+                    "shipo-heading": { pattern: /^(?:checks|plan|release(?: \S+)?)$/m, alias: "shipo-bold" },
+                    "shipo-title": { pattern: /^\S+ \(\d+\.\d+\.\d+[^)]*\)$/m, alias: "shipo-bold" },
+                    "shipo-menu": {
+                        pattern: /^ {2}\d\) .+$/m,
+                        inside: { "shipo-dim": /^ {2}\d\)|→/, "shipo-bold": /\S+$/ },
+                    },
+                    "shipo-field": { pattern: /^(?:target|preset|source|version|tag)(?= +\S)/m, alias: "shipo-dim" },
+                    "shipo-block": { pattern: /^(?:release|workflow|command)(?= +\S)/m, alias: "shipo-bold" },
+                    "shipo-row": { pattern: /(^ {2})(?:push|release|workflow|command)(?= +\S)/m, lookbehind: true, alias: "shipo-bold" },
+                    "shipo-note": { pattern: /(^ {2})- .+$/m, lookbehind: true, alias: "shipo-dim" },
+                    "shipo-question": { pattern: /^(?:Run|Create)\?/m, alias: "shipo-bold" },
+                    "shipo-answer": { pattern: /\[y\/N\]/, alias: "shipo-dim" },
+                    "shipo-prompt": /^> /m,
+                    "shipo-done": /✓/,
+                    "shipo-fail": /✗/,
+                    "shipo-running": /…/,
+                };
+            })();
+        </script>
+    </body>
+</html>
