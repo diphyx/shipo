@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+<defs>
+<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse" x="12.0" y="35.0"><path d="M40 0H0V40" fill="none" stroke="#e2e8f0" stroke-width="1" /></pattern>
+<radialGradient id="glow" cx="892.0" cy="315.0" r="520" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" /><stop offset=".55" stop-color="#fff" stop-opacity=".55" /><stop offset="1" stop-color="#fff" stop-opacity="0" /></radialGradient>
+<mask id="fade"><rect width="1200" height="630" fill="url(#glow)" /></mask>
+<g id="check" fill="#2f6fde"><rect x="3" y="3" width="18" height="18" rx="5" /><path d="m8.2 12.2 2.6 2.6 5-5.2" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></g>
+</defs>
+<rect width="1200" height="630" fill="#f8fafc" />
+<rect width="1200" height="630" fill="url(#grid)" mask="url(#fade)" />
+
+<text x="80" y="288.2" font-size="168" font-weight="700" fill="#34495e" letter-spacing="-5">shipo</text>
+<text x="91" y="342.6" font-size="22.97" fill="#7f8c8d">Ship out of the box</text>
+<use href="#check" transform="translate(88.0 397.9)" /><text x="125.4" y="419.2" font-size="26" fill="#34495e">One command, from bump to publish.</text>
+<use href="#check" transform="translate(88.0 440.5)" /><text x="125.4" y="461.8" font-size="26" fill="#34495e">Any stack, one small config.</text>
+
+<g stroke="#34495e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(96 -24)">
+<!-- the box, open -->
+<path d="M640 360L700 330H860L920 360" fill="#e2e8f0" />
+<path d="M640 360L604 316L668 290L700 330Z" fill="#fff" />
+<path d="M920 360L956 316L892 290L860 330Z" fill="#fff" />
+<path d="M640 360H920V496Q920 510 906 510H654Q640 510 640 496Z" fill="#fff" />
+<path d="M640 360H920" />
+<rect x="824" y="440" width="70" height="46" rx="6" fill="#fff" stroke="#94a3b8" stroke-width="2" />
+<rect x="834" y="452" width="40" height="6" rx="3" fill="#cbd5e1" stroke="none" />
+<rect x="834" y="466" width="28" height="6" rx="3" fill="#cbd5e1" stroke="none" />
+
+<!-- the release, out of the box -->
+<g transform="rotate(-10 780 225)">
+<path d="M712 196H828L862 225L828 254H712Q700 254 700 242V208Q700 196 712 196Z" fill="#2f6fde" />
+<circle cx="836" cy="225" r="5" fill="#fff" />
+<text x="764" y="234" font-family="Menlo, 'SF Mono', Consolas, monospace" font-size="22" font-weight="700" fill="#fff" stroke="none" text-anchor="middle">v1.5.0</text>
+</g>
+<g stroke="#94a3b8" stroke-dasharray="2 9"><path d="M740 300V272" /><path d="M780 300V266" /><path d="M820 300V262" /></g>
+
+</g>
+</g>
+</svg>
