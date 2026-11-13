@@ -81,17 +81,44 @@ shipo -t web bump minor         # a step, by its last folder name
 
 ## Editors
 
-`.shipo` has no extension, so editors show it as plain text. Map it to TOML, or to YAML if you write YAML:
+`.shipo` has no extension, so editors show it as plain text. Map it to TOML, or to YAML if you write YAML.
 
-| Editor    | In                                      | Add                                                         |
-| --------- | --------------------------------------- | ----------------------------------------------------------- |
-| VS Code   | `settings.json`                         | `"files.associations": { ".shipo": "toml" }`                |
-| Zed       | `settings.json`                         | `"file_types": { "TOML": [".shipo"] }`                      |
-| JetBrains | Settings → Editor → File Types → TOML   | `.shipo` to File name patterns                              |
-| Neovim    | `init.lua`                              | `vim.filetype.add({ filename = { [".shipo"] = "toml" } })`  |
-| Vim       | `.vimrc`                                | `autocmd BufRead,BufNewFile .shipo setfiletype toml`        |
-| GitHub    | `.gitattributes`                        | `.shipo linguist-language=TOML`                             |
+**VS Code**: `settings.json`, or `.vscode/settings.json` for one repo. TOML needs an extension such as [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml); YAML is built in.
 
-- VS Code colors TOML with an extension such as [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml); YAML is built in. `.vscode/settings.json` sets it for one repo.
-- JetBrains covers IntelliJ, GoLand, WebStorm, PyCharm and the rest.
-- GitHub uses it for the file view and diffs.
+```json
+"files.associations": {
+  ".shipo": "toml"
+}
+```
+
+**Zed**: `settings.json`
+
+```json
+"file_types": {
+  "TOML": [".shipo"]
+}
+```
+
+**JetBrains** (IntelliJ, GoLand, WebStorm, PyCharm, …): Settings → Editor → File Types → TOML → File name patterns
+
+```
+.shipo
+```
+
+**Neovim**: `init.lua`
+
+```lua
+vim.filetype.add({ filename = { [".shipo"] = "toml" } })
+```
+
+**Vim**: `.vimrc`
+
+```vim
+autocmd BufRead,BufNewFile .shipo setfiletype toml
+```
+
+**GitHub**: `.gitattributes`, for the file view and diffs
+
+```
+.shipo linguist-language=TOML
+```
