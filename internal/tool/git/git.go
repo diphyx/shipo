@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/diphyx/shipo/internal/tool/process"
@@ -170,6 +171,28 @@ func (git *Git) Resolve(context context.Context, revision string) string {
 // IsAncestor reports whether ancestor is reachable from descendant.
 func (git *Git) IsAncestor(context context.Context, ancestor string, descendant string) bool {
 	return git.run(context, "merge-base", "--is-ancestor", ancestor, descendant) == nil
+}
+
+// CanMerge reports whether revision merges into HEAD with no conflict. It
+// merges in memory only: nothing is written. Before git 2.40 it is false.
+func (git *Git) CanMerge(context context.Context, revision string) bool {
+	return git.run(context, "merge-tree", "--write-tree", "--quiet", "HEAD", revision) == nil
+}
+
+// Merge merges revision into HEAD: a fast-forward when it can be, otherwise a
+// merge commit with git's own message.
+func (git *Git) Merge(context context.Context, revision string) error {
+	return git.run(context, "merge", "--quiet", "--no-edit", revision)
+}
+
+// CountCommits counts the commits of to that from doesn't have.
+func (git *Git) CountCommits(context context.Context, from string, to string) (int, error) {
+	count, countError := git.output(context, "rev-list", "--count", from+".."+to)
+	if countError != nil {
+		return 0, countError
+	}
+
+	return strconv.Atoi(count)
 }
 
 // Add stages files.

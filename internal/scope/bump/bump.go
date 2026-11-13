@@ -74,7 +74,11 @@ func Create(context context.Context, plan *release.Release, output *ui.Terminal)
 		return result, nil
 	}
 
-	runError := run(context, plan, output, result)
+	runError := merge(context, plan, output)
+	if runError == nil {
+		runError = run(context, plan, output, result)
+	}
+
 	if runError != nil {
 		revertError := Revert(context, plan.Target, result)
 

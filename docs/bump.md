@@ -34,6 +34,9 @@ Move with `↑` `↓` and press `enter`, or press `1`–`4`. Without a terminal,
 
 ## Commit and Tag
 
+- When the push branch has commits HEAD lacks, the bump merges them first, as long as they merge with no conflict; `shipo check` shows `merged before the bump`. A conflict stops the release before any change. It never rebases or force-pushes.
+- If the merged commits change the version, the merge is undone and the release stops: run shipo again.
+
 - The commit holds the version files and the lock file. Its message takes [keywords](keywords.md), but not `{hash}`.
 - The tag is `v{version}`, `<folder>/v{version}` in a subfolder, or the pattern for git presets.
 

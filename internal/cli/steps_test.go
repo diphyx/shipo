@@ -226,3 +226,59 @@ func TestStepReleaseNeedsRemoteTag(t *testing.T) {
 		t.Fatal("nothing must run before the tag is pushed")
 	}
 }
+
+// pushElsewhere commits files from another clone and pushes them to main.
+func pushElsewhere(t *testing.T, current *session, files map[string]string) {
+	t.Helper()
+
+	clone := filepath.Join(t.TempDir(), "clone")
+	testkit.Run(t, filepath.Dir(clone), "git", "clone", "--quiet", current.repo.Remote, clone)
+
+	other := &testkit.Repo{T: t, Work: clone}
+	other.Write(files)
+	other.Commit("someone else")
+	other.Git("push", "--quiet", "origin", "main")
+}
+
+func TestBumpMergesRemoteCommits(t *testing.T) {
+	current := newSession(t, "", map[string]string{"package.json": PACKAGE_JSON})
+	pushElsewhere(t, current, map[string]string{"CNAME": "example.com"})
+
+	for _, step := range [][]string{{"bump", "patch"}, {"push"}} {
+		stepError := current.run(t, "", false, step...)
+		if stepError != nil {
+			t.Fatalf("%v: %v\n%s", step, stepError, current.output)
+		}
+	}
+
+	if !strings.Contains(current.output.String(), "merge      origin/main (1 commit)") {
+		t.Fatalf("the merge is shown:\n%s", current.output)
+	}
+
+	if current.repo.Read("CNAME") != "example.com" || !strings.Contains(current.repo.Read("package.json"), `"version": "1.0.1"`) {
+		t.Fatal("the remote's commit and the bump are both in")
+	}
+
+	if remoteTag := current.repo.RemoteGit("tag", "--list"); remoteTag != "v1.0.1" {
+		t.Fatalf("remote tags = %q", remoteTag)
+	}
+}
+
+func TestBumpMergeChangesVersion(t *testing.T) {
+	current := newSession(t, "", map[string]string{"package.json": PACKAGE_JSON})
+	before := current.repo.Git("rev-parse", "HEAD")
+	pushElsewhere(t, current, map[string]string{"package.json": strings.Replace(PACKAGE_JSON, "1.0.0", "1.0.5", 1)})
+
+	bumpError := current.run(t, "", false, "bump", "patch")
+	if bumpError == nil || !strings.Contains(bumpError.Error(), "change the version from 1.0.0 to 1.0.5") {
+		t.Fatalf("want a version change error, got %v\n%s", bumpError, current.output)
+	}
+
+	if after := current.repo.Git("rev-parse", "HEAD"); after != before {
+		t.Fatal("the merge must be undone")
+	}
+
+	if tags := current.repo.Git("tag", "--list"); tags != "" {
+		t.Fatalf("no tag is left: %q", tags)
+	}
+}

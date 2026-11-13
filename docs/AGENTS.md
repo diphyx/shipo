@@ -59,6 +59,8 @@ shipo workflow --no-wait
 shipo command
 ```
 
+`shipo bump` merges the push branch's new commits first when they merge with no conflict; a failed bump undoes the merge.
+
 With several `.shipo` in the repo, give the target: `shipo -t packages/api check`, `shipo -t api bump patch`. Without `-t`, steps use the nearest `.shipo` from the current folder.
 
 `shipo` and `shipo <level>` are the interactive flow: they need a person.

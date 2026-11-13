@@ -2,6 +2,7 @@ package check
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -122,13 +123,36 @@ func TestRemotes(t *testing.T) {
 	}
 }
 
-func TestRemoteAhead(t *testing.T) {
-	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE})
+// pushElsewhere commits a file from another clone and pushes it to main.
+func pushElsewhere(t *testing.T, repo *testkit.Repo, name string, content string) {
+	t.Helper()
 
-	other := t.TempDir()
-	testkit.Run(t, other, "git", "clone", "--quiet", repo.Remote, "clone")
-	testkit.Run(t, other+"/clone", "git", "commit", "--quiet", "--allow-empty", "-m", "someone else")
-	testkit.Run(t, other+"/clone", "git", "push", "--quiet", "origin", "main")
+	clone := filepath.Join(t.TempDir(), "clone")
+	testkit.Run(t, filepath.Dir(clone), "git", "clone", "--quiet", repo.Remote, clone)
+	testkit.Run(t, clone, "sh", "-c", "printf '%s' \"$1\" > \"$2\"", "sh", content, name)
+	testkit.Run(t, clone, "git", "add", "--all")
+	testkit.Run(t, clone, "git", "commit", "--quiet", "-m", "someone else")
+	testkit.Run(t, clone, "git", "push", "--quiet", "origin", "main")
+}
+
+func TestRemoteAheadMerges(t *testing.T) {
+	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE})
+	pushElsewhere(t, repo, "CNAME", "example.com")
+
+	remote, _ := item(Run(context.Background(), planned(t, repo, testkit.NewRunner(), semver.LEVEL_PATCH), Everything()), "remote")
+	if !remote.IsOK || remote.Detail != "origin/main, 1 commit behind; merged before the bump" {
+		t.Fatalf("a clean merge passes: %+v", remote)
+	}
+
+	failure(t, Run(context.Background(), planned(t, repo, testkit.NewRunner(), semver.LEVEL_CURRENT), Everything()), "remote", "has commits you don't have")
+	failure(t, Run(context.Background(), planned(t, repo, testkit.NewRunner(), semver.LEVEL_PATCH), Options{Tasks: []string{"push"}}), "remote", "has commits you don't have")
+}
+
+func TestRemoteAheadConflicts(t *testing.T) {
+	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE, "notes.txt": "one\n"})
+	pushElsewhere(t, repo, "notes.txt", "theirs\n")
+	repo.Write(map[string]string{"notes.txt": "ours\n"})
+	repo.Commit("ours")
 
 	failure(t, Run(context.Background(), planned(t, repo, testkit.NewRunner(), semver.LEVEL_PATCH), Everything()), "remote", "has commits you don't have")
 }

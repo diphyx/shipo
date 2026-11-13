@@ -196,15 +196,14 @@ func tools(context context.Context, target *release.Target, options Options) Ite
 }
 
 func remotes(context context.Context, plan *release.Release, options Options) []Item {
-	isBump := options.IsBump
 	target := plan.Target
+	// isNewTag is a bump that makes a new tag; current reuses its tag.
+	isNewTag := options.IsBump && plan.Level != semver.LEVEL_CURRENT
 
 	var items []Item
 
-	head, _ := target.Git.Head(context)
-
 	for _, entry := range target.Config.Publish.Push.Items {
-		remote, branch, _ := config.SplitPush(entry)
+		remote, _, _ := config.SplitPush(entry)
 
 		if !target.Git.HasRemote(context, remote) {
 			items = append(items, Item{Name: "remote", Detail: remote + " is not a configured remote"})
@@ -221,24 +220,9 @@ func remotes(context context.Context, plan *release.Release, options Options) []
 			continue
 		}
 
-		remoteBranch := target.Git.Resolve(context, remote+"/"+branch)
+		items = append(items, branchItem(release.NewBranch(context, target, entry), isNewTag))
 
-		switch {
-		case remoteBranch == "":
-			{
-				items = append(items, Item{Name: "remote", IsOK: true, Detail: entry + ", new branch"})
-			}
-		case target.Git.IsAncestor(context, remoteBranch, head):
-			{
-				items = append(items, Item{Name: "remote", IsOK: true, Detail: entry + ", fast-forward ok"})
-			}
-		default:
-			{
-				items = append(items, Item{Name: "remote", Detail: entry + " has commits you don't have; pull first"})
-			}
-		}
-
-		if isBump && plan.Level != semver.LEVEL_CURRENT {
+		if isNewTag {
 			options.report("checking tag " + plan.Tag + " on " + remote)
 
 			isTaken, _ := target.Git.HasRemoteTag(context, remote, plan.Tag)
@@ -248,11 +232,32 @@ func remotes(context context.Context, plan *release.Release, options Options) []
 		}
 	}
 
-	if isBump && plan.Level != semver.LEVEL_CURRENT && target.Git.HasTag(context, plan.Tag) {
+	if isNewTag && target.Git.HasTag(context, plan.Tag) {
 		items = append(items, Item{Name: "tag", Detail: plan.Tag + " already exists"})
 	}
 
 	return items
+}
+
+// branchItem says whether HEAD can go to a push branch. A new tag merges in
+// the branch's commits first, when they merge with no conflict.
+func branchItem(branch *release.Branch, isNewTag bool) Item {
+	switch {
+	case branch.Revision == "":
+		{
+			return Item{Name: "remote", IsOK: true, Detail: branch.Entry + ", new branch"}
+		}
+	case branch.Behind == 0:
+		{
+			return Item{Name: "remote", IsOK: true, Detail: branch.Entry + ", fast-forward ok"}
+		}
+	case isNewTag && branch.CanMerge:
+		{
+			return Item{Name: "remote", IsOK: true, Detail: branch.Entry + ", " + branch.Commits() + " behind; merged before the bump"}
+		}
+	}
+
+	return Item{Name: "remote", Detail: branch.Entry + " has commits you don't have; pull first"}
 }
 
 // State reads where a release stands: its tag, its GitHub Release and its workflows.

@@ -7,11 +7,13 @@
 | `tree: has changes; commit or stash them`       | commit, stash, or remove them, untracked files too |
 | `tools: not installed: gh`                      | install it, or drop the key that needs it          |
 | `tools: gh is not logged in`                    | `gh auth login`                                    |
-| `remote: … has commits you don't have`          | `git pull`                                         |
+| `remote: … has commits you don't have`          | they conflict with yours, or the bump is `current`: `git pull` and resolve |
+| `the merged commits change the version`         | the push branch has a newer release: run shipo again |
 | `tag: v1.5.0 already exists`                    | that version is out; bump further                  |
 | `lock: … has several lock files`                | delete the one you don't use                       |
 | `workflow: build.yml has no on: workflow_dispatch` | add `workflow_dispatch:` under `on:`            |
 | `no .shipo found in this folder or above`       | `shipo init`, or `cd` into the target              |
+| `no .shipo in this folder or above; pick a target with -t` | add `-t <target>`, or `cd` into the target |
 | `unknown key bump.levl`                         | fix the spelling; see [keys](config.md#keys)       |
 | `several stacks detected (…)`                   | set `preset`                                       |
 | `pyproject.toml: the version is dynamic`        | point `source` at the file that holds it           |
