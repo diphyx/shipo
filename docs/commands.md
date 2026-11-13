@@ -17,6 +17,8 @@ shipo init
 shipo skill [tool] [project|user]
 ```
 
+In a repo with several `.shipo`, `-t <target>` picks one: `shipo -t api patch`. Without it, the flow, `check` and `version` show a [target menu](config.md#targets).
+
 Exit code `0` on success, `1` on an error, printed as `error: …`.
 
 ## Flow

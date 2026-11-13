@@ -21,7 +21,7 @@ import (
 
 // ShowVersion prints the target and its version.
 func (app *App) ShowVersion(context context.Context) error {
-	target, openError := release.Open(context, app.Runner, app.Dir)
+	target, _, openError := app.openTarget(context, true)
 	if openError != nil {
 		return openError
 	}
@@ -53,9 +53,13 @@ func (app *App) ShowVersion(context context.Context) error {
 
 // Check prints the checks, the state of the current release, and the plan.
 func (app *App) Check(context context.Context) error {
-	target, openError := release.Open(context, app.Runner, app.Dir)
+	target, isPicked, openError := app.openTarget(context, true)
 	if openError != nil {
 		return openError
+	}
+
+	if isPicked {
+		app.UI.Done("target", target.Folder)
 	}
 
 	next, nextError := release.NewRelease(context, target, semver.LEVEL_PATCH)

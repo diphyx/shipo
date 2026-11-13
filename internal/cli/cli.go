@@ -35,6 +35,12 @@ Info:
   shipo skill [tool] [project|user]  install the AI skill
 
   shipo --version | --help
+
+Targets:
+  Every .shipo in the repo is a target: the root's first, then each folder.
+  With more than one, the flow, check and version show a menu; steps use the
+  nearest .shipo. -t <target> picks one by its folder, or its last folder name:
+  shipo -t packages/api patch     shipo -t api build
 `
 
 // EXIT_CANCELLED is the exit code after Ctrl-C, as shells use: 128 + SIGINT.
@@ -46,6 +52,8 @@ type App struct {
 	Runner  process.Runner
 	Dir     string
 	Version string
+	// Target is the -t value: the .shipo folder to release, or "" to choose.
+	Target string
 }
 
 // Run runs shipo with the given arguments and returns the exit code.
@@ -80,11 +88,22 @@ func Run(arguments []string, version string) int {
 
 // Dispatch runs one command.
 func (app *App) Dispatch(context context.Context, arguments []string) error {
+	arguments, target, targetError := takeTarget(arguments)
+	if targetError != nil {
+		return targetError
+	}
+
+	app.Target = target
+
 	if len(arguments) == 0 {
 		return app.Flow(context, "")
 	}
 
 	name, rest := arguments[0], arguments[1:]
+
+	if app.Target != "" && (name == "init" || name == "skill") {
+		return fmt.Errorf("shipo %s takes no -t; run it in its folder", name)
+	}
 
 	switch name {
 	case "--version", "-v":

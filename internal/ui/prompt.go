@@ -52,12 +52,21 @@ type Choice struct {
 // Menu shows choices and returns the chosen index. On a terminal it is moved
 // with the arrow keys; elsewhere a number is typed.
 func (terminal *Terminal) Menu(context context.Context, title string, choices []Choice) (int, error) {
+	return terminal.MenuFrom(context, title, choices, 0)
+}
+
+// MenuFrom is Menu with the cursor first on the selected choice.
+func (terminal *Terminal) MenuFrom(context context.Context, title string, choices []Choice, selected int) (int, error) {
 	if !terminal.IsInteractive {
 		return 0, ErrNoTerminal
 	}
 
+	if selected < 0 || selected >= len(choices) {
+		selected = 0
+	}
+
 	if terminal.isKeys {
-		index, keysError := terminal.menuKeys(context, title, choices)
+		index, keysError := terminal.menuKeys(context, title, choices, selected)
 		if !errors.Is(keysError, errNoRawMode) {
 			return index, keysError
 		}
@@ -70,11 +79,13 @@ func (terminal *Terminal) Menu(context context.Context, title string, choices []
 func (terminal *Terminal) menuNumbers(context context.Context, title string, choices []Choice) (int, error) {
 	_, _ = fmt.Fprintf(terminal.Out, "%s\n\n", terminal.style(title, STYLE_BOLD))
 
+	width := menuWidth(choices)
+
 	for index, choice := range choices {
 		number := terminal.style(strconv.Itoa(index+1)+")", STYLE_DIM)
 		arrow := terminal.style("→", STYLE_DIM)
 
-		_, _ = fmt.Fprintf(terminal.Out, "  %s %s %s %s\n", number, pad(choice.Label, MENU_WIDTH), arrow, terminal.style(choice.Detail, STYLE_BOLD))
+		_, _ = fmt.Fprintf(terminal.Out, "  %s %s %s %s\n", number, pad(choice.Label, width), arrow, terminal.style(choice.Detail, STYLE_BOLD))
 	}
 
 	for {
@@ -100,7 +111,7 @@ var errNoRawMode = errors.New("no raw mode")
 
 // menuKeys shows choices with a cursor moved by the arrow keys, and clears
 // itself once a choice is made.
-func (terminal *Terminal) menuKeys(context context.Context, title string, choices []Choice) (int, error) {
+func (terminal *Terminal) menuKeys(context context.Context, title string, choices []Choice, selected int) (int, error) {
 	if terminal.keyFile != nil {
 		state, rawError := term.MakeRaw(int(terminal.keyFile.Fd()))
 		if rawError != nil {
@@ -109,8 +120,6 @@ func (terminal *Terminal) menuKeys(context context.Context, title string, choice
 
 		defer func() { _ = term.Restore(int(terminal.keyFile.Fd()), state) }()
 	}
-
-	selected := 0
 
 	_, _ = fmt.Fprint(terminal.Out, CODE_HIDE+terminal.style(title, STYLE_BOLD)+"\r\n\r\n")
 	terminal.drawChoices(choices, selected)
@@ -165,14 +174,16 @@ func (terminal *Terminal) menuKeys(context context.Context, title string, choice
 func (terminal *Terminal) drawChoices(choices []Choice, selected int) {
 	var builder strings.Builder
 
+	width := menuWidth(choices)
+
 	for index, choice := range choices {
 		builder.WriteString(CODE_CLEAR)
 
 		if index == selected {
-			builder.WriteString(terminal.style(MENU_CURSOR, STYLE_BOLD, STYLE_CYAN) + " " + terminal.style(pad(choice.Label, MENU_WIDTH), STYLE_BOLD))
+			builder.WriteString(terminal.style(MENU_CURSOR, STYLE_BOLD, STYLE_CYAN) + " " + terminal.style(pad(choice.Label, width), STYLE_BOLD))
 			builder.WriteString(" " + terminal.style("→", STYLE_DIM) + " " + terminal.style(choice.Detail, STYLE_BOLD))
 		} else {
-			builder.WriteString("  " + terminal.style(pad(choice.Label, MENU_WIDTH)+" → "+choice.Detail, STYLE_DIM))
+			builder.WriteString("  " + terminal.style(pad(choice.Label, width)+" → "+choice.Detail, STYLE_DIM))
 		}
 
 		builder.WriteString("\r\n")
@@ -185,4 +196,15 @@ func (terminal *Terminal) drawChoices(choices []Choice, selected int) {
 // cursor again: the chosen step prints its own line next.
 func (terminal *Terminal) endMenu(count int) {
 	_, _ = fmt.Fprintf(terminal.Out, "\x1b[%dA\r"+CODE_CLEAR_UP+CODE_SHOW, count+2)
+}
+
+// menuWidth is the label column: MENU_WIDTH, or the longest label.
+func menuWidth(choices []Choice) int {
+	width := MENU_WIDTH
+
+	for _, choice := range choices {
+		width = max(width, len([]rune(choice.Label)))
+	}
+
+	return width
 }

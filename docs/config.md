@@ -57,7 +57,25 @@ repo/
 └── web/.shipo      ← tags web/v1.2.3
 ```
 
-- shipo uses the nearest `.shipo`, from the current folder up.
-- Paths in it are relative to its folder.
+- shipo finds every `.shipo` in the repo, skipping what git ignores (`node_modules`, `dist`, …).
+- One `.shipo` is used directly. With several, `shipo`, `shipo check` and `shipo version` show a menu, from any folder: the root first, only if it has a `.shipo`, then each folder by path. The nearest `.shipo` is preselected.
+- A folder deeper than three levels shows as `first/../last` in the menu.
+- `-t <target>` picks one without the menu: its folder from the root, or its last folder name when only one target has it.
+- Steps never show the menu: without `-t` they use the nearest `.shipo`, from the current folder up.
+- Paths in a `.shipo` are relative to its folder.
+
+```shipo
+$ shipo
+target
+
+❯ packages/api   → 1.4.0
+  packages/web   → 0.9.2
+  tools/../cli   → 0.2.0
+```
+
+```bash
+shipo -t packages/api patch     # the flow, for one target
+shipo -t web bump minor         # a step, by its last folder name
+```
 
 !> `.shipo` is committed: never put tokens in it. Each tool keeps its own login.

@@ -59,6 +59,8 @@ shipo workflow --no-wait
 shipo command
 ```
 
+With several `.shipo` in the repo, give the target: `shipo -t packages/api check`, `shipo -t api bump patch`. Without `-t`, steps use the nearest `.shipo` from the current folder.
+
 `shipo` and `shipo <level>` are the interactive flow: they need a person.
 
 `current` releases the same version again: no write, no commit; the tag goes on HEAD (moved from an older commit, if needed) and is pushed again, so tag workflows rerun. Moving a published tag affects anyone who fetched it: ask the user before `shipo bump current`.

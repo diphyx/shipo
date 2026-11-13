@@ -215,3 +215,16 @@ func TestPromptsStopOnCtrlC(t *testing.T) {
 		}
 	}
 }
+
+func TestMenuFrom(t *testing.T) {
+	terminal, output := keys(KEY_DOWN + "\r")
+
+	index, menuError := terminal.MenuFrom(context.Background(), "target", []Choice{{Label: "."}, {Label: "packages/api"}, {Label: "packages/web"}}, 1)
+	if menuError != nil || index != 2 {
+		t.Fatalf("the cursor starts on the selected choice: %d %v", index, menuError)
+	}
+
+	if !strings.Contains(output.String(), MENU_CURSOR+" packages/api → ") {
+		t.Fatalf("labels wider than MENU_WIDTH set the column:\n%q", output)
+	}
+}

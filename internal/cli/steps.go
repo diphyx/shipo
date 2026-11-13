@@ -24,7 +24,7 @@ func (app *App) StepBump(context context.Context, name string) error {
 		return errors.New("shipo bump needs a level: major, minor, patch or current")
 	}
 
-	target, openError := release.Open(context, app.Runner, app.Dir)
+	target, _, openError := app.openTarget(context, false)
 	if openError != nil {
 		return openError
 	}
@@ -46,7 +46,7 @@ func (app *App) StepBump(context context.Context, name string) error {
 
 // Step runs one step on the release that HEAD already is, with no prompt.
 func (app *App) Step(context context.Context, name string, isNoWait bool) error {
-	target, openError := release.Open(context, app.Runner, app.Dir)
+	target, _, openError := app.openTarget(context, false)
 	if openError != nil {
 		return openError
 	}

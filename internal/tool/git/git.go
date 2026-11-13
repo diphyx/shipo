@@ -50,6 +50,26 @@ func (git *Git) Root(context context.Context) (string, error) {
 	return filepath.FromSlash(root), nil
 }
 
+// Files lists the files that match a pathspec, tracked or untracked but not
+// ignored, with paths relative to the top folder and slash-separated.
+func (git *Git) Files(context context.Context, pathspec string) ([]string, error) {
+	output, filesError := git.output(context, "ls-files", "--cached", "--others", "--exclude-standard", "--full-name", "-z", "--", pathspec)
+	if filesError != nil {
+		return nil, filesError
+	}
+
+	var files []string
+
+	for _, file := range strings.Split(output, "\x00") {
+		file = strings.TrimSpace(file)
+		if file != "" {
+			files = append(files, file)
+		}
+	}
+
+	return files, nil
+}
+
 // IsClean reports whether the working tree has no changes, tracked or untracked.
 func (git *Git) IsClean(context context.Context) (bool, error) {
 	status, statusError := git.output(context, "status", "--porcelain")

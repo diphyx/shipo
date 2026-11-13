@@ -21,9 +21,13 @@ func (app *App) Flow(context context.Context, level semver.Level) error {
 		return ui.ErrNoTerminal
 	}
 
-	target, openError := release.Open(context, app.Runner, app.Dir)
+	target, isPicked, openError := app.openTarget(context, true)
 	if openError != nil {
 		return openError
+	}
+
+	if isPicked {
+		app.UI.Done("target", target.Folder)
 	}
 
 	retry, retryError := app.offerRetry(context, target)

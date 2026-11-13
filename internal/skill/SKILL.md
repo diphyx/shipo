@@ -52,6 +52,8 @@ shipo workflow --no-wait  # needs the tag on the remote
 shipo command
 ```
 
+With several `.shipo` in the repo, add `-t <folder>` to each command, such as `shipo -t packages/api bump patch`; without it, the nearest `.shipo` from the current folder is used.
+
 ## Rules
 
 - Never run `shipo` or `shipo <level>`; they are interactive and need a person.
