@@ -10,8 +10,8 @@
 
 <text x="80" y="288.2" font-size="168" font-weight="700" fill="#34495e" letter-spacing="-5">shipo</text>
 <text x="91" y="342.6" font-size="22.97" fill="#7f8c8d">Ship out of the box</text>
-<use href="#check" transform="translate(88.0 397.9)" /><text x="125.4" y="419.2" font-size="26" fill="#34495e">One command, from bump to publish.</text>
-<use href="#check" transform="translate(88.0 440.5)" /><text x="125.4" y="461.8" font-size="26" fill="#34495e">Any stack, one small config.</text>
+<use href="#check" transform="translate(88.0 397.9)" /><text x="125.4" y="419.2" font-size="26" fill="#34495e">Bump, tag, push and release.</text>
+<use href="#check" transform="translate(88.0 440.5)" /><text x="125.4" y="461.8" font-size="26" fill="#34495e">One safe, easy command.</text>
 
 <g stroke="#34495e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
 <g transform="translate(96 -24)">

@@ -1,11 +1,12 @@
 # shipo
 
-**Ship out of the box.** One binary and a few lines of config: bump, tag, build and publish any repo.
+**Ship out of the box.** Bump, tag, push, release: the tasks you repeat by hand, in one safe, easy command.
 
 ![checks, version, bump and build run locally and are undone on failure; publish sends the release out and is never undone](docs/_media/flow.svg)
 
 - **Out of the box:** presets find the version in your stack; `shipo init` writes the config.
 - **One flow for every repo:** it replaces each project's own `release.sh`.
+- **On top of your tools:** `git`, GitHub and your own commands do the work; shipo runs them in order.
 - **Safe:** every check runs first, and a failed local step is undone.
 - **Asks before it sends:** a GitHub Release, a workflow and your commands each ask first.
 - **Any stack:** JavaScript, Python, Rust, PHP, Dart, Java, C#, Go, Swift, or any file by pattern.

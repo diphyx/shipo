@@ -28,6 +28,23 @@ preset = "go"
 command = ["go vet ./...", "go test ./..."]
 ```
 
+## Go with GoReleaser
+
+shipo tags and pushes; GoReleaser builds the binaries and creates the GitHub Release, so leave `release` off. It reads `GITHUB_TOKEN` from your environment.
+
+```toml
+[version]
+preset = "go"
+
+[build]
+command = ["go test ./...", "goreleaser check"]
+
+[publish]
+command = "goreleaser release --clean"
+```
+
+To run GoReleaser in CI instead, drop `[publish]` `command`: the tag push starts its workflow.
+
 ## Python Package
 
 ```toml
