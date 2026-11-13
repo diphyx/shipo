@@ -1,2 +1,5 @@
 # Keep LF everywhere, so embedded files such as SKILL.md are the same on every OS.
 * text=auto eol=lf
+
+# Color .shipo as TOML on GitHub.
+.shipo linguist-language=TOML

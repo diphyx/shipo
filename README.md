@@ -45,7 +45,7 @@ command = "npm publish"
 | Page                                        | For                                           |
 | ------------------------------------------- | --------------------------------------------- |
 | [Get Started](docs/start.md)                | install, a first `.shipo`, a first release    |
-| [.shipo](docs/config.md)                    | every key, TOML or YAML, monorepos            |
+| [.shipo](docs/config.md)                    | every key, TOML or YAML, monorepos, editors   |
 | [Commands](docs/commands.md)                | the flow, the steps, `check` and the output   |
 | [Recipes](docs/recipes.md)                  | ready configs for npm, Go, Python, Rust, Docker |
 | [Troubleshooting](docs/troubleshooting.md)  | each error and its fix                        |

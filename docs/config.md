@@ -57,10 +57,9 @@ repo/
 └── web/.shipo      ← tags web/v1.2.3
 ```
 
-- shipo finds every `.shipo` in the repo, skipping what git ignores (`node_modules`, `dist`, …).
-- One `.shipo` is used directly. With several, `shipo`, `shipo check` and `shipo version` show a menu, from any folder: the root first, only if it has a `.shipo`, then each folder by path. The nearest `.shipo` is preselected.
-- A folder deeper than three levels shows as `first/../last` in the menu.
-- `-t <target>` picks one without the menu: its folder from the root, or its last folder name when only one target has it.
+- shipo finds every `.shipo` in the repo, from any folder, skipping what git ignores (`node_modules`, `dist`, …).
+- One is used directly. With several, `shipo`, `shipo check` and `shipo version` show a menu: the root first if it has a `.shipo`, then each folder by path, with the nearest one preselected. Folders deeper than three levels show as `first/../last`.
+- `-t <target>` skips the menu: the folder from the root, or its last folder name when that is unique.
 - Steps never show the menu: without `-t` they use the nearest `.shipo`, from the current folder up.
 - Paths in a `.shipo` are relative to its folder.
 
@@ -68,9 +67,9 @@ repo/
 $ shipo
 target
 
-❯ packages/api   → 1.4.0
-  packages/web   → 0.9.2
-  tools/../cli   → 0.2.0
+❯ packages/api → 1.4.0
+  packages/web → 0.9.2
+  tools/../cli → 0.2.0
 ```
 
 ```bash
@@ -79,3 +78,20 @@ shipo -t web bump minor         # a step, by its last folder name
 ```
 
 !> `.shipo` is committed: never put tokens in it. Each tool keeps its own login.
+
+## Editors
+
+`.shipo` has no extension, so editors show it as plain text. Map it to TOML, or to YAML if you write YAML:
+
+| Editor    | In                                      | Add                                                         |
+| --------- | --------------------------------------- | ----------------------------------------------------------- |
+| VS Code   | `settings.json`                         | `"files.associations": { ".shipo": "toml" }`                |
+| Zed       | `settings.json`                         | `"file_types": { "TOML": [".shipo"] }`                      |
+| JetBrains | Settings → Editor → File Types → TOML   | `.shipo` to File name patterns                              |
+| Neovim    | `init.lua`                              | `vim.filetype.add({ filename = { [".shipo"] = "toml" } })`  |
+| Vim       | `.vimrc`                                | `autocmd BufRead,BufNewFile .shipo setfiletype toml`        |
+| GitHub    | `.gitattributes`                        | `.shipo linguist-language=TOML`                             |
+
+- VS Code colors TOML with an extension such as [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml); YAML is built in. `.vscode/settings.json` sets it for one repo.
+- JetBrains covers IntelliJ, GoLand, WebStorm, PyCharm and the rest.
+- GitHub uses it for the file view and diffs.
