@@ -57,6 +57,7 @@ The title is the tag; the notes are generated from the commits. Each path must m
 
 - The workflow needs `on: workflow_dispatch`, and gets only the inputs you write.
 - shipo waits for the run. `shipo workflow --no-wait` doesn't.
+- Ctrl-C while it waits stops only the wait: the run goes on on GitHub. The steps after it don't run.
 
 ## Command
 

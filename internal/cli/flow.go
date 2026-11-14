@@ -120,7 +120,9 @@ func (app *App) publish(context context.Context, plan *release.Release) error {
 
 		runError := runTask(context, plan, app.UI, task, false)
 		if runError != nil {
-			app.UI.Fail(task, "failed; nothing was undone")
+			if !errors.Is(runError, publish.ErrStoppedWatching) {
+				app.UI.Fail(task, "failed; nothing was undone")
+			}
 
 			return runError
 		}

@@ -12,6 +12,7 @@ import (
 	"github.com/diphyx/shipo/internal/release"
 	"github.com/diphyx/shipo/internal/testkit"
 	"github.com/diphyx/shipo/internal/text/semver"
+	"github.com/diphyx/shipo/internal/tool/process"
 	"github.com/diphyx/shipo/internal/ui"
 )
 
@@ -342,6 +343,31 @@ func TestWorkflowFailures(t *testing.T) {
 	badInput := tagged(t, "[publish]\nworkflow = \"build.yml noequals\"\n", nil)
 	if Workflow(context.Background(), badInput.release, badInput.ui, false) == nil {
 		t.Fatal("want an input error")
+	}
+}
+
+func TestWorkflowStopWatching(t *testing.T) {
+	current := tagged(t, "[publish]\nworkflow = [\"build.yml\", \"docs.yml\"]\n", nil)
+	stopped, stop := context.WithCancel(context.Background())
+	replies := testkit.WithReplies(map[string]testkit.Response{
+		"gh workflow run": {Output: "https://github.com/o/r/actions/runs/5"},
+		"gh run watch 5":  {Error: testkit.ErrFailed},
+	})
+	current.runner.Handle = func(command process.Command) testkit.Response {
+		if strings.HasPrefix(command.String(), "gh run watch") {
+			stop()
+		}
+
+		return replies(command)
+	}
+
+	workflowError := Workflow(stopped, current.release, current.ui, false)
+	if !errors.Is(workflowError, ErrStoppedWatching) {
+		t.Fatalf("Ctrl-C while watching must only stop the wait, got %v", workflowError)
+	}
+
+	if !strings.Contains(current.output.String(), "build.yml still running https://github.com/o/r/actions/runs/5") || current.runner.Called("gh workflow run docs.yml") {
+		t.Fatalf("calls = %v\n%s", current.runner.Calls(), current.output)
 	}
 }
 

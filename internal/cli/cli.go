@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/diphyx/shipo/internal/scope/publish"
 	"github.com/diphyx/shipo/internal/text/semver"
 	"github.com/diphyx/shipo/internal/tool/process"
 	"github.com/diphyx/shipo/internal/ui"
@@ -72,7 +73,9 @@ func Run(arguments []string, version string) int {
 
 	runError := app.Dispatch(signalContext, arguments)
 	if runError != nil && (signalContext.Err() != nil || errors.Is(runError, ui.ErrCancelled)) {
-		app.UI.Error(ui.ErrCancelled)
+		if !errors.Is(runError, publish.ErrStoppedWatching) {
+			app.UI.Error(ui.ErrCancelled)
+		}
 
 		return EXIT_CANCELLED
 	}

@@ -35,6 +35,10 @@ var Tasks = []string{TASK_PUSH, TASK_RELEASE, TASK_WORKFLOW, TASK_COMMAND}
 // ErrNeedsPush is returned by release and workflow when push is off.
 var ErrNeedsPush = errors.New("needs push; publish.push is false")
 
+// ErrStoppedWatching is returned when Ctrl-C stops the wait for a workflow.
+// Only the wait stops: the run goes on on GitHub, so it isn't a failure.
+var ErrStoppedWatching = errors.New("stopped watching the workflow")
+
 // IsSet reports whether a task is configured.
 func IsSet(target *release.Target, task string) bool {
 	settings := target.Config.Publish
@@ -303,6 +307,13 @@ func Workflow(context context.Context, plan *release.Release, output *ui.Termina
 		task := output.Start("workflow", file+" "+run.URL)
 
 		watchError := plan.GitHub.WatchRun(context, task, run.ID)
+		if watchError != nil && context.Err() != nil {
+			task.Clear()
+			output.Skip("workflow", file+" still running "+run.URL)
+
+			return ErrStoppedWatching
+		}
+
 		if watchError != nil {
 			task.Fail()
 
