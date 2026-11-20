@@ -22,23 +22,25 @@ const (
 	LEVEL_MINOR   Level = "minor"
 	LEVEL_PATCH   Level = "patch"
 	LEVEL_CURRENT Level = "current"
+	// LEVEL_FINAL finishes a pre-release: 1.2.0-next gives 1.2.0.
+	LEVEL_FINAL Level = "final"
 )
 
-// Levels lists the levels that pick a version, in menu order.
-var Levels = []Level{LEVEL_PATCH, LEVEL_MINOR, LEVEL_MAJOR, LEVEL_CURRENT}
+// Levels lists every level that picks a version, in menu order.
+var Levels = []Level{LEVEL_FINAL, LEVEL_PATCH, LEVEL_MINOR, LEVEL_MAJOR, LEVEL_CURRENT}
 
 // ParseLevel validates a level name.
 func ParseLevel(name string) (Level, error) {
 	level := Level(name)
 
 	switch level {
-	case LEVEL_ASK, LEVEL_MAJOR, LEVEL_MINOR, LEVEL_PATCH, LEVEL_CURRENT:
+	case LEVEL_ASK, LEVEL_MAJOR, LEVEL_MINOR, LEVEL_PATCH, LEVEL_CURRENT, LEVEL_FINAL:
 		{
 			return level, nil
 		}
 	}
 
-	return "", fmt.Errorf("unknown level %q: want ask, major, minor, patch or current", name)
+	return "", fmt.Errorf("unknown level %q: want ask, major, minor, patch, current or final", name)
 }
 
 // Version is a parsed semantic version.
@@ -89,39 +91,11 @@ func (version Version) Bump(level Level) (Version, error) {
 		{
 			return version, nil
 		}
+	case LEVEL_FINAL:
+		{
+			return Version{Major: version.Major, Minor: version.Minor, Patch: version.Patch}, nil
+		}
 	}
 
 	return Version{}, fmt.Errorf("cannot bump with level %q", level)
-}
-
-// Promote returns the release a pre-release leads to, as npm does: 1.3.0-next
-// with minor gives 1.3.0, and 1.3.1-next with minor gives 1.4.0. A release is
-// bumped as usual.
-func (version Version) Promote(level Level) (Version, error) {
-	if version.Prerelease() == "" {
-		return version.Bump(level)
-	}
-
-	release := Version{Major: version.Major, Minor: version.Minor, Patch: version.Patch}
-
-	switch level {
-	case LEVEL_MAJOR:
-		{
-			if version.Minor == 0 && version.Patch == 0 {
-				return release, nil
-			}
-		}
-	case LEVEL_MINOR:
-		{
-			if version.Patch == 0 {
-				return release, nil
-			}
-		}
-	case LEVEL_PATCH:
-		{
-			return release, nil
-		}
-	}
-
-	return version.Bump(level)
 }

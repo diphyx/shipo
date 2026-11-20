@@ -23,6 +23,14 @@
 | `HEAD is not a release`                         | `shipo bump <level>` first                         |
 | `tag v1.5.0 is not on origin; run shipo push first` | `shipo push`                                   |
 | `✗ … failed; nothing was undone`                | fix it, then run that step again                   |
+| `{remote} needs an upstream`                    | `git push -u origin <branch>` once                 |
+| `{branch} and {remote} need a checked-out branch` | `git switch <branch>`; in CI, check out the branch, not the commit |
+| `bump.suffix needs a checked-out branch`        | the same: a detached HEAD can't say its branch     |
+| `suffix: origin/main would get v1.3.0-next`     | `push = "{remote}/{branch}"`                       |
+| `suffix: python versions can't end in -next`    | name the branch `alpha`, `beta` or `rc`            |
+| `current: 1.3.0-next is a pre-release from another branch` | `final` releases it as `1.3.0`          |
+| `final releases on main: run shipo final`       | `shipo final` in a terminal; the steps never switch branches |
+| `next and main conflict`                        | merge `main` into `next`, resolve, then `shipo final` |
 
 ## Common Mistakes
 

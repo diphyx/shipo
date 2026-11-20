@@ -37,9 +37,14 @@ func NewBranch(context context.Context, target *Target, entry string) *Branch {
 
 // Commits says how many commits HEAD lacks: "1 commit", "3 commits".
 func (branch *Branch) Commits() string {
-	if branch.Behind == 1 {
+	return Commits(branch.Behind)
+}
+
+// Commits says how many commits there are: "1 commit" or "3 commits".
+func Commits(count int) string {
+	if count == 1 {
 		return "1 commit"
 	}
 
-	return fmt.Sprintf("%d commits", branch.Behind)
+	return fmt.Sprintf("%d commits", count)
 }

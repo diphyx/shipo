@@ -89,6 +89,7 @@ func (config *Config) sections() map[string]map[string]setter {
 		"bump": {
 			"level":  text(&config.Bump.Level),
 			"commit": text(&config.Bump.Commit),
+			"stable": text(&config.Bump.Stable),
 			"suffix": toggle(&config.Bump.Suffix),
 		},
 		"build": {

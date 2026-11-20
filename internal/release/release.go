@@ -150,6 +150,10 @@ func NewRelease(context context.Context, target *Target, level semver.Level) (*R
 		return nil, readError
 	}
 
+	if target.IsStableFinal(level) {
+		return nil, fmt.Errorf("final releases on %s: run shipo final, which switches there", target.Config.Bump.Stable)
+	}
+
 	next, bumpError := target.Bump(current.Version, level)
 	if bumpError != nil {
 		return nil, bumpError
@@ -174,7 +178,7 @@ func NewRelease(context context.Context, target *Target, level semver.Level) (*R
 	// The current version can be another branch's: 1.3.0-next on main after
 	// a merge, or 1.2.3 on a new next. The previous tag is then this
 	// branch's own, or the release it branched from.
-	if !target.isOwnTag(current.Version) {
+	if !target.owns(current.Version) {
 		found, _ := release.findPreviousTag(context)
 		if found != "" {
 			release.PreviousTag = found

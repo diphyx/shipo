@@ -18,6 +18,7 @@ suffix = ["next"]
 | `minor`   | `1.3.0`          |
 | `patch`   | `1.2.4`          |
 | `current` | `1.2.3`, again   |
+| `final`   | `1.2.3`, from `1.2.3-next`; with a [suffix](#suffix) |
 
 ```shipo
 $ shipo
@@ -29,7 +30,7 @@ javascript (1.2.3)
   current  → 1.2.3
 ```
 
-Move with `↑` `↓` and press `enter`, or press `1`–`4`. Without a terminal, a number is typed instead.
+Move with `↑` `↓` and press `enter`, or press its number. Without a terminal, a number is typed instead.
 
 `shipo minor` on the command line wins over `level`.
 
@@ -47,6 +48,7 @@ Branches that release on their own line, such as `next` beside `main`, add their
 
 ```toml
 [bump]
+stable = "main"                  # plain releases; the default
 suffix = ["next", "release/*"]   # a branch, a glob, a list, or false
 
 [publish]
@@ -60,13 +62,48 @@ push = "{remote}/{branch}"
 | `release/2.x` | `1.3.0-release-2.x` | `v1.3.0-release-2.x` |
 
 - The suffix goes in the version files too, so packages and images don't collide. A `/` becomes `-`.
-- A listed branch bumps from its own version: `1.3.0-next` + `patch` is `1.3.1-next`.
-- On another branch, a merged pre-release is finished: `1.3.0-next` + `minor` is `1.3.0`, as npm does.
+- `stable` never takes a suffix, so `suffix = "*"` is every other branch.
+- The menu shows only the levels that fit the branch and its version:
+
+| On     | Version      | Menu                                                               |
+| ------ | ------------ | ------------------------------------------------------------------ |
+| `next` | `1.2.0`      | `patch` → `1.2.1-next`, `minor`, `major`                           |
+| `next` | `1.2.0-next` | `final` → `1.2.0 on main`, `patch` → `1.2.1-next`, `minor`, `major`, `current` |
+| `main` | `1.2.0-next` | `final` → `1.2.0`, `patch` → `1.2.1`, `minor`, `major`             |
+| `main` | `1.2.0`      | `patch`, `minor`, `major`, `current`, as with no suffix            |
+
+- `current` needs the branch's own version, so it never reuses another branch's tag.
 - With git presets, each branch reads only its own tags: `next` the `-next` ones, `main` the ones with no suffix.
 - `{previous_tag}` is the branch's own, or on a first `-next` release, the release it branched from.
 - A suffix branch must push to itself; `shipo check` stops a push to another branch.
 - Python and PHP take only some names: name the branch `alpha`, `beta` or `rc`.
 - A detached HEAD can't say its branch: a bump stops.
+
+### Final
+
+`final` releases the pre-release as a plain version. On `main`, after merging `next`, it's a bump like the others. On `next`, `shipo final` does the round trip:
+
+![shipo final on next switches to main, merges next, releases there, updates next to the release and switches back; a local failure resets main and switches back to next](_media/final.svg)
+
+```shipo
+$ shipo final
+✓ switch     main
+✓ merge      next (3 commits)
+✓ bump       final · 1.2.0-next → 1.2.0
+✓ checks     tools, tree, remote
+✓ version    package.json → 1.2.0
+✓ commit     chore: release v1.2.0
+✓ tag        v1.2.0
+✓ push       origin/main + v1.2.0
+✓ update     next ← main, push to origin
+✓ switch     next
+```
+
+- The tree must be clean, and `main` must merge into `next` with no conflict. It merges; it never rebases.
+- `next` moves up to the release, so the next `patch` there is `1.2.1-next`.
+- A failed local step undoes the bump, resets `main` and switches back to `next`.
+- A failed publish stays on `main`, as nothing is undone once publishing starts.
+- `shipo bump final` on `next` stops: the round trip is only in the flow.
 
 ## Current
 

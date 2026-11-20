@@ -57,9 +57,9 @@ func TestSuffixBump(t *testing.T) {
 	repo.Git("checkout", "--quiet", "main")
 	repo.Git("merge", "--quiet", "next")
 
-	promoted := planOn(t, repo, semver.LEVEL_MINOR)
-	if promoted.Next.String() != "1.3.0" || promoted.PreviousTag != "v1.2.3" {
-		t.Fatalf("main after merge: %s %s", promoted.Next, promoted.PreviousTag)
+	final := planOn(t, repo, semver.LEVEL_FINAL)
+	if final.Next.String() != "1.3.0" || final.PreviousTag != "v1.2.3" {
+		t.Fatalf("main after merge: %s %s", final.Next, final.PreviousTag)
 	}
 }
 

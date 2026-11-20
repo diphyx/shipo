@@ -11,8 +11,9 @@ Every scope and key is optional.
 | [`version`](version.md) `preset`  | `auto`, a stack, `git`, `custom` | `auto`                    |
 | `version` `source`  | a file or a glob                          | from the preset             |
 | `version` `pattern` | a field, a text pattern, or `/regex/`     | from the preset             |
-| [`bump`](bump.md) `level` | `ask` `major` `minor` `patch` `current` | `ask`                     |
+| [`bump`](bump.md) `level` | `ask` `major` `minor` `patch` `current` `final` | `ask`             |
 | `bump` `commit`     | a message                                 | `chore: release v{version}` |
+| `bump` `stable`     | a branch                                  | `main`                      |
 | `bump` `suffix`     | a branch, a list, or `false`              | `false`                     |
 | [`build`](build.md) `dir` | a folder                            | the `.shipo` folder         |
 | `build` `command`   | a command, or a list                      | none                        |

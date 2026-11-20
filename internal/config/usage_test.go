@@ -11,7 +11,7 @@ import (
 func defaults() Config {
 	return Config{
 		Version: Version{Preset: DEFAULT_PRESET},
-		Bump:    Bump{Level: DEFAULT_LEVEL, Commit: DEFAULT_COMMIT},
+		Bump:    Bump{Level: DEFAULT_LEVEL, Commit: DEFAULT_COMMIT, Stable: DEFAULT_STABLE},
 		Publish: Publish{Push: Switch{IsSet: true, Items: []string{DEFAULT_PUSH}}},
 	}
 }

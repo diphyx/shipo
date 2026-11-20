@@ -2,7 +2,7 @@
 
 ```bash
 shipo                           # the whole flow, with the bump menu
-shipo major|minor|patch|current # the whole flow, bump given
+shipo major|minor|patch|current|final # the whole flow, bump given
 
 shipo bump <level>              # steps: one task each, no prompts
 shipo build

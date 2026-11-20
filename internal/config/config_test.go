@@ -245,4 +245,18 @@ func TestParseSuffix(t *testing.T) {
 	if off.Bump.Suffix.Enabled() {
 		t.Fatal("suffix = false must be off")
 	}
+
+	if config.Bump.Stable != "main" {
+		t.Fatalf("stable defaults to main, got %q", config.Bump.Stable)
+	}
+
+	custom, _ := Parse("[bump]\nstable = \"master\"\nsuffix = \"*\"\n")
+	if custom == nil || custom.Bump.Stable != "master" {
+		t.Fatal("stable = master with suffix = * is valid")
+	}
+
+	_, overlapError := Parse("[bump]\nsuffix = [\"next\", \"main\"]\n")
+	if overlapError == nil {
+		t.Fatal("suffix can't list main, the stable branch")
+	}
 }

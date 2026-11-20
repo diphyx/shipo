@@ -195,6 +195,17 @@ func (git *Git) Merge(context context.Context, revision string) error {
 	return git.run(context, "merge", "--quiet", "--no-edit", revision)
 }
 
+// FastForward moves HEAD's branch to revision, only when it is a fast-forward.
+func (git *Git) FastForward(context context.Context, revision string) error {
+	return git.run(context, "merge", "--quiet", "--ff-only", revision)
+}
+
+// Switch checks out a branch. A branch that exists only on a remote is
+// created from it, as git switch does.
+func (git *Git) Switch(context context.Context, branch string) error {
+	return git.run(context, "switch", "--quiet", branch)
+}
+
 // CountCommits counts the commits of to that from doesn't have.
 func (git *Git) CountCommits(context context.Context, from string, to string) (int, error) {
 	count, countError := git.output(context, "rev-list", "--count", from+".."+to)

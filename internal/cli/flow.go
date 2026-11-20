@@ -44,6 +44,10 @@ func (app *App) Flow(context context.Context, level semver.Level) error {
 		return levelError
 	}
 
+	if target.IsStableFinal(chosen) {
+		return app.flowStable(context, target)
+	}
+
 	plan, planError := release.NewRelease(context, target, chosen)
 	if planError != nil {
 		return planError
@@ -66,6 +70,17 @@ func (app *App) Flow(context context.Context, level semver.Level) error {
 
 // finish runs build, then publish. A build failure reverts the bump.
 func (app *App) finish(context context.Context, plan *release.Release, result *bump.Result) error {
+	prepareError := app.prepare(context, plan, result)
+	if prepareError != nil {
+		return prepareError
+	}
+
+	return app.publish(context, plan)
+}
+
+// prepare runs the local steps after the bump: build, and finding the
+// release files. A failure reverts the bump.
+func (app *App) prepare(context context.Context, plan *release.Release, result *bump.Result) error {
 	if build.IsSet(plan.Target) {
 		buildError := build.Run(context, plan, app.UI)
 		if buildError != nil {
@@ -93,7 +108,7 @@ func (app *App) finish(context context.Context, plan *release.Release, result *b
 		}
 	}
 
-	return app.publish(context, plan)
+	return nil
 }
 
 func (app *App) publish(context context.Context, plan *release.Release) error {
@@ -182,23 +197,45 @@ func (app *App) chooseLevel(context context.Context, target *release.Target, lev
 		return "", readError
 	}
 
-	choices := make([]ui.Choice, len(semver.Levels))
-
-	for index, option := range semver.Levels {
-		next, bumpError := target.Bump(current.Version, option)
-		if bumpError != nil {
-			return "", bumpError
-		}
-
-		choices[index] = ui.Choice{Label: string(option), Detail: next.String()}
-	}
-
-	index, menuError := app.UI.Menu(context, fmt.Sprintf("%s (%s)", target.Version.Preset, current.Version), choices)
+	title, levels, choices, menuError := levelMenu(target, current.Version)
 	if menuError != nil {
 		return "", menuError
 	}
 
-	return semver.Levels[index], nil
+	index, pickError := app.UI.Menu(context, title, choices)
+	if pickError != nil {
+		return "", pickError
+	}
+
+	return levels[index], nil
+}
+
+// levelMenu builds the bump menu: the levels that fit the current version on
+// this branch, each with the version it gives.
+func levelMenu(target *release.Target, current semver.Version) (string, []semver.Level, []ui.Choice, error) {
+	levels := target.Levels(current)
+	choices := make([]ui.Choice, len(levels))
+
+	for index, level := range levels {
+		next, bumpError := target.Bump(current, level)
+		if bumpError != nil {
+			return "", nil, nil, bumpError
+		}
+
+		detail := next.String()
+		if target.IsStableFinal(level) {
+			detail += " on " + target.Config.Bump.Stable
+		}
+
+		choices[index] = ui.Choice{Label: string(level), Detail: detail}
+	}
+
+	title := fmt.Sprintf("%s (%s)", target.Version.Preset, current)
+	if target.HasSuffix() && target.HeadBranch != "" {
+		title += " on " + target.HeadBranch
+	}
+
+	return title, levels, choices, nil
 }
 
 // offerRetry offers to publish HEAD again when it is a release whose tag

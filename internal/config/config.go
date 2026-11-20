@@ -39,8 +39,10 @@ type Version struct {
 type Bump struct {
 	Level  string
 	Commit string
+	// Stable is the branch of plain releases, where final releases.
+	Stable string
 	// Suffix lists the branches, or globs, whose versions take the branch
-	// name as a pre-release, such as 1.3.0-next.
+	// name as a pre-release, such as 1.3.0-next. Stable never does.
 	Suffix Switch
 }
 
@@ -64,6 +66,7 @@ const (
 	DEFAULT_PRESET = "auto"
 	DEFAULT_LEVEL  = "ask"
 	DEFAULT_COMMIT = "chore: release v{version}"
+	DEFAULT_STABLE = "main"
 	DEFAULT_PUSH   = "origin/main"
 )
 
@@ -155,6 +158,10 @@ func (config *Config) applyDefaults() {
 		config.Bump.Commit = DEFAULT_COMMIT
 	}
 
+	if config.Bump.Stable == "" {
+		config.Bump.Stable = DEFAULT_STABLE
+	}
+
 	if !config.Publish.Push.IsSet {
 		config.Publish.Push = Switch{IsSet: true, Items: []string{DEFAULT_PUSH}}
 	}
@@ -182,6 +189,10 @@ func (config *Config) validate() error {
 		_, matchError := path.Match(branch, "")
 		if branch == "" || matchError != nil {
 			return fmt.Errorf("bump.suffix: %q is not a branch or a glob", branch)
+		}
+
+		if branch == config.Bump.Stable {
+			return fmt.Errorf("bump.suffix: %s is the stable branch", branch)
 		}
 	}
 

@@ -19,7 +19,8 @@ const USAGE = `shipo cuts a release: version → bump → build → publish.
 
 Flow (interactive):
   shipo                              the whole flow, with the bump menu
-  shipo major|minor|patch|current    the whole flow, with the bump given
+  shipo major|minor|patch|current|final
+                                     the whole flow, with the bump given
 
 Steps (no prompts):
   shipo bump <level>                 write the version, commit and tag
@@ -121,14 +122,14 @@ func (app *App) Dispatch(context context.Context, arguments []string) error {
 
 			return nil
 		}
-	case string(semver.LEVEL_MAJOR), string(semver.LEVEL_MINOR), string(semver.LEVEL_PATCH), string(semver.LEVEL_CURRENT):
+	case string(semver.LEVEL_MAJOR), string(semver.LEVEL_MINOR), string(semver.LEVEL_PATCH), string(semver.LEVEL_CURRENT), string(semver.LEVEL_FINAL):
 		{
 			return app.noExtra(rest, func() error { return app.Flow(context, semver.Level(name)) })
 		}
 	case "bump":
 		{
 			if len(rest) != 1 {
-				return errors.New("usage: shipo bump <major|minor|patch|current>")
+				return errors.New("usage: shipo bump <major|minor|patch|current|final>")
 			}
 
 			return app.StepBump(context, rest[0])

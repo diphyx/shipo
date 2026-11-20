@@ -13,7 +13,7 @@ import (
 func (release *Release) findPreviousTag(context context.Context) (string, semver.Version) {
 	tags, _ := release.Git.Tags(context)
 
-	best, bestVersion := release.highestBelow(tags, release.isOwnTag)
+	best, bestVersion := release.highestBelow(tags, release.owns)
 	if best == "" && release.Suffix != "" {
 		best, bestVersion = release.highestBelow(tags, func(version semver.Version) bool {
 			return version.Prerelease() == ""
@@ -48,7 +48,7 @@ func (target *Target) ownTags(tags []string) []string {
 
 	for _, tag := range tags {
 		parsed, isMatch := target.parseTag(tag)
-		if isMatch && target.isOwnTag(parsed) {
+		if isMatch && target.owns(parsed) {
 			own = append(own, tag)
 		}
 	}

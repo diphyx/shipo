@@ -29,8 +29,9 @@ source  = "package.json"         # a file or a glob
 pattern = "version"              # a field, a text pattern with {version}, or /regex/
 
 [bump]
-level  = "ask"                   # ask major minor patch current
+level  = "ask"                   # ask major minor patch current final
 commit = "chore: release v{version}"
+stable = "main"                  # the branch of plain releases
 suffix = ["next"]                # branches whose versions end in -<branch>, a list, or false
 
 [build]

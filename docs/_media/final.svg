@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 200" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="shipo final on next switches to main, merges next, releases there, updates next to the release and switches back; a local failure resets main and switches back to next">
+  <defs>
+    <marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#b4c0c7"/>
+    </marker>
+  </defs>
+
+  <g font-size="16" font-weight="700" fill="#2b3f47" text-anchor="middle">
+    <rect x="20" y="40" width="128" height="72" rx="12" fill="#eef4ff" stroke="#2f6fde" stroke-width="1.5"/>
+    <text x="84" y="72">switch</text>
+    <rect x="188" y="40" width="128" height="72" rx="12" fill="#eef4ff" stroke="#2f6fde" stroke-width="1.5"/>
+    <text x="252" y="72">merge</text>
+    <rect x="356" y="40" width="128" height="72" rx="12" fill="#fff5ec" stroke="#e8590c" stroke-width="1.5"/>
+    <text x="420" y="72">final</text>
+    <rect x="524" y="40" width="128" height="72" rx="12" fill="#fff5ec" stroke="#e8590c" stroke-width="1.5"/>
+    <text x="588" y="72">update</text>
+    <rect x="712" y="40" width="128" height="72" rx="12" fill="#eef4ff" stroke="#2f6fde" stroke-width="1.5"/>
+    <text x="776" y="72">switch</text>
+  </g>
+
+  <g font-size="12" fill="#5e707a" text-anchor="middle">
+    <text x="84" y="94">to main</text>
+    <text x="252" y="94">next into main</text>
+    <text x="420" y="94">the flow · 1.2.0</text>
+    <text x="588" y="94">next ← main · push</text>
+    <text x="776" y="94">back to next</text>
+  </g>
+
+  <g stroke="#b4c0c7" stroke-width="1.5" fill="none" marker-end="url(#head)">
+    <path d="M150 76 H184"/>
+    <path d="M318 76 H352"/>
+    <path d="M486 76 H520"/>
+    <path d="M654 76 H708"/>
+  </g>
+
+  <g fill="none" stroke-width="2" stroke-linecap="round">
+    <path d="M20 134 V142 H484 V134" stroke="#2f6fde"/>
+    <path d="M524 134 V142 H840 V134" stroke="#e8590c"/>
+  </g>
+
+  <g font-size="12" font-weight="700" letter-spacing="1" text-anchor="middle">
+    <text x="252" y="166" fill="#2f6fde">ON MAIN</text>
+    <text x="682" y="166" fill="#e8590c">ON NEXT</text>
+  </g>
+  <g font-size="12" fill="#5e707a" text-anchor="middle">
+    <text x="252" y="184">a local failure resets main, back on next</text>
+    <text x="682" y="184">up to the release, pushed</text>
+  </g>
+</svg>

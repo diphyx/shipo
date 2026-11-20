@@ -81,34 +81,21 @@ func TestBumpAskAndSuffix(t *testing.T) {
 	}
 }
 
-func TestPromote(t *testing.T) {
-	cases := []struct {
-		from  string
-		level Level
-		want  string
-	}{
-		{"1.3.0-next", LEVEL_PATCH, "1.3.0"},
-		{"1.3.0-next", LEVEL_MINOR, "1.3.0"},
-		{"1.3.0-next", LEVEL_MAJOR, "2.0.0"},
-		{"2.0.0-next", LEVEL_MAJOR, "2.0.0"},
-		{"1.3.1-next", LEVEL_MINOR, "1.4.0"},
-		{"1.3.1-next", LEVEL_PATCH, "1.3.1"},
-		{"1.3.0-next", LEVEL_CURRENT, "1.3.0-next"},
-		{"1.3.0", LEVEL_PATCH, "1.3.1"},
+func TestBumpFinal(t *testing.T) {
+	version, _ := Parse("1.2.0-next+5")
+
+	final, finalError := version.Bump(LEVEL_FINAL)
+	if finalError != nil || final.String() != "1.2.0" {
+		t.Fatalf("final = %s %v", final, finalError)
 	}
 
-	for _, test := range cases {
-		version, _ := Parse(test.from)
-
-		next, promoteError := version.Promote(test.level)
-		if promoteError != nil || next.String() != test.want {
-			t.Fatalf("%s %s = %s %v, want %s", test.from, test.level, next, promoteError, test.want)
-		}
+	if _, parseError := ParseLevel("final"); parseError != nil {
+		t.Fatal(parseError)
 	}
 }
 
 func TestLevelsOrder(t *testing.T) {
-	want := []Level{LEVEL_PATCH, LEVEL_MINOR, LEVEL_MAJOR, LEVEL_CURRENT}
+	want := []Level{LEVEL_FINAL, LEVEL_PATCH, LEVEL_MINOR, LEVEL_MAJOR, LEVEL_CURRENT}
 	for index, level := range want {
 		if Levels[index] != level {
 			t.Fatalf("menu order: %v", Levels)
