@@ -82,9 +82,12 @@ push = "{remote}/{branch}"
 
 ### Final
 
-`final` releases the pre-release as a plain version. On `main`, after merging `next`, it's a bump like the others. On `next`, `shipo final` releases what was tested, the commit of `next`'s last `-next` tag, in a round trip:
+`final` releases a pre-release as a plain version: `1.2.0-next` gives `1.2.0`.
 
-![shipo final on next switches to main, merges next, releases there, updates next to the release and switches back; a local failure resets main and switches back to next](_media/final.svg)
+- On `main`, after you merged `next` yourself, it's a bump like the others.
+- On `next`, `shipo final` does the whole round trip, and needs a terminal. `shipo bump final` there stops: the steps never switch branches.
+
+![shipo final on next switches to main, brings in the tested tag by merge or replace, releases there, brings the release into next and switches back; a local failure resets main and switches back to next](_media/final.svg)
 
 ```shipo
 $ shipo final
@@ -100,9 +103,17 @@ $ shipo final
 ✓ switch     next
 ```
 
-- The tree must be clean. If merging `main` would conflict, `merge` says so in the menu and stops before any change.
-- It fetches first. If `origin/next` has commits `next` lacks, it stops: pull them first.
-- When `main` has commits `next` lacks, it asks how to join them:
+#### What It Releases
+
+What was tested: the commit of `next`'s last `-next` tag, not whatever `next` holds now.
+
+- Usually that's `next` itself, and the output says `next`.
+- If `next` moved on past its tag, the newer commits weren't tested. They stay on `next`, out of the release, and the menu says `final → 1.2.0 on main, from v1.2.0-next`.
+- With no `-next` tag yet, it releases `next` as it is.
+
+#### Merge or Replace
+
+When `main` has commits the tested commit lacks, it asks first:
 
 ```shipo
 main has 1 commit next lacks
@@ -111,15 +122,29 @@ main has 1 commit next lacks
   replace  → main becomes next; drops 156147d, backed up
 ```
 
-- If `next` moved on past its last `-next` tag, the newer commits weren't tested: they stay on `next`, out of the release, and the menu says `final → 1.2.0 on main, from v1.2.0-next`.
-- `merge` releases the tested commit with `main`'s commits.
-- `replace` releases exactly the tested commit. First it saves `main` as `backup/main-<date>` and pushes it, so nothing it drops is lost; an earlier backup that day keeps its name, and the new one gets `-2`. When the local and the remote `main` diverged, both are saved, the local one with `-local`. `main`'s extra commits, local and on the remote, are dropped from `main`, which is force-pushed with a lease: if `main` moved on the remote since, the checks stop it before any change.
-- `next` gets the release: a fast-forward, or a merge when it moved on past its tag. It is never rewritten; if that merge would conflict, it is left for you to merge.
-- A failed local step undoes the bump, resets `main` and switches back to `next`.
-- A failed publish stays on `main`, as nothing is undone once publishing starts.
+| Pick      | `main` after         | `main`'s extra commits                  |
+| --------- | -------------------- | --------------------------------------- |
+| `merge`   | them + `next`, merged | released too                           |
+| `replace` | exactly `next`       | dropped from `main`, kept in a backup   |
+
+- With no extra commits, it asks nothing: `main` fast-forwards.
+- Pick `replace` to release exactly what was tested, when `main` holds work that wasn't.
+- `replace` first saves `main` as `backup/main-<date>`, pushed to the remote, so nothing it drops is lost. An earlier backup that day keeps its name; the new one gets `-2`. If the local and the remote `main` diverged, both are saved, the local one with `-local`.
+- It then force-pushes `main` with a lease: if `main` moved on the remote since `final` read it, the checks stop it before any change.
+- If a `merge` would conflict, the menu says so, and picking it stops before any change.
+
+#### After the Release
+
+- `next` gets the release: a fast-forward, or a merge when it moved on past its tag. It's never rewritten. If that merge would conflict, it's left for you.
+- The next `patch` on `next` is then `1.2.1-next`.
 - If `v1.2.0` is out already, `final` releases it again, as [`current`](#current) does: the tag moves to the new release commit and is pushed again.
-- If `main` released past it, as `v1.3.0`, `final` stops, for `merge` and `replace` alike: bump `next` first.
-- `shipo bump final` on `next` stops: the round trip is only in the flow.
+
+#### Safety
+
+- It needs a clean tree, and fetches first.
+- It stops before any change if `origin/next` has commits `next` lacks (pull first), or if `main` released past the version, as `v1.3.0` (bump `next` first).
+- A failed local step undoes the bump, puts `main` back and switches back to `next`. A backup stays.
+- A failed publish stays on `main`, as nothing is undone once publishing starts. The error says how to finish, with the exact push for a `replace`.
 
 ## Current
 

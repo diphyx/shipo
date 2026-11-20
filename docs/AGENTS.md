@@ -63,6 +63,8 @@ shipo command
 
 `shipo bump` merges the push branch's new commits first when they merge with no conflict; a failed bump undoes the merge.
 
+With `bump.suffix`, a listed branch releases `1.3.0-next` and pushes to itself (`push = "{remote}/{branch}"`). `shipo final` on it releases its last `-next` tag's commit, what was tested, as `1.3.0` on `bump.stable`, and needs a person: if `stable` has commits that commit lacks, it asks `merge` or `replace`, which backs `stable` up as `backup/<stable>-<date>` and force-pushes it. Tell the user before suggesting `replace`.
+
 With several `.shipo` in the repo, give the target: `shipo -t packages/api check`, `shipo -t api bump patch`. Without `-t`, steps use the nearest `.shipo` from the current folder.
 
 `shipo` and `shipo <level>` are the interactive flow: they need a person.

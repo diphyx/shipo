@@ -62,7 +62,7 @@ With several `.shipo` in the repo, add `-t <folder>` to each command, such as `s
 - Never put secrets in `.shipo`; it is committed. Each tool keeps its own login.
 - `shipo bump` merges the push branch's new commits first when they merge cleanly; on a conflict it stops: ask the user to pull and resolve.
 - `release` and `workflow` need `push`; with `push = false` they are skipped.
-- A branch in `bump.suffix` releases `1.3.0-next` and must push to itself: `push = "{remote}/{branch}"`. `shipo final` on it switches to `stable`, merges or replaces, releases `1.3.0`, updates the branch and switches back; it needs a terminal, so ask the user to run it. If `stable` has commits the branch lacks, `replace` drops them from `stable` with a force-push: tell the user.
+- A branch in `bump.suffix` releases `1.3.0-next` and must push to itself: `push = "{remote}/{branch}"`. `shipo final` on it releases its last `-next` tag's commit, what was tested, as `1.3.0` on `stable`, then brings the release back and switches back; it needs a terminal, so ask the user to run it. If `stable` has commits that commit lacks, it asks `merge` or `replace`: `replace` saves `stable` as `backup/<stable>-<date>`, then drops them from `stable` with a force-push: tell the user.
 - `shipo bump current` re-releases the same version: it moves the tag to HEAD and re-pushes it. A `final` whose tag exists does the same. Ask the user before running either.
 - After a failure, run `shipo check` to see where the release stands, then run the missing step again.
 - If unsure, ask the user.

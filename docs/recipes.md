@@ -84,6 +84,26 @@ workflow = "image.yml version={version}"
 command  = "ssh deploy@203.0.113.10 'cd /app && export TAG={version} && docker compose pull && docker compose up -d --wait'"
 ```
 
+## Two Release Lines
+
+`main` ships `1.2.0`, `next` ships `1.3.0-next` beside it; one `.shipo` for both:
+
+```toml
+[bump]
+suffix = "next"
+
+[publish]
+push    = "{remote}/{branch}"
+release = true
+```
+
+```bash
+git switch next && shipo minor   # 1.3.0-next, a GitHub pre-release
+shipo final                      # on next: 1.3.0 on main, from what was tested
+```
+
+See [Suffix](bump.md#suffix) and [Final](bump.md#final).
+
 ## Monorepo
 
 ```toml

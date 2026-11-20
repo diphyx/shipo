@@ -31,7 +31,9 @@
 | `current: 1.3.0-next is a pre-release from another branch` | `final` releases it as `1.3.0`          |
 | `final: 1.2.0 is below 1.3.0, the last release on main` | `main` is ahead: bump `next`, then `shipo final` |
 | `final releases on main: run shipo final`       | `shipo final` in a terminal; the steps never switch branches |
-| `next and main conflict`                        | merge `main` into `next`, resolve, then `shipo final` |
+| `next and main conflict`                        | merge `main` into `next`, resolve, then `shipo final`; or pick `replace` |
+| `origin/next has commits you don't have`        | `git pull` on `next`, then `shipo final`           |
+| `remote: origin/main moved since final started` | someone pushed to `main`: run `shipo final` again  |
 
 ## Common Mistakes
 
