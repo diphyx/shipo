@@ -67,7 +67,7 @@ With several `.shipo` in the repo, give the target: `shipo -t packages/api check
 
 `shipo` and `shipo <level>` are the interactive flow: they need a person.
 
-`current` releases the same version again: no write, no commit; the tag goes on HEAD (moved from an older commit, if needed) and is pushed again, so tag workflows rerun. Moving a published tag affects anyone who fetched it: ask the user before `shipo bump current`.
+`current` releases the same version again: no write, no commit; the tag goes on HEAD (moved from an older commit, if needed) and is pushed again, so tag workflows rerun. A `final` whose tag exists does the same. Moving a published tag affects anyone who fetched it: ask the user before `shipo bump current` or such a `final`.
 
 ## The Skill
 

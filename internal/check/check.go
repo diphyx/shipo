@@ -221,7 +221,11 @@ func remotes(context context.Context, plan *release.Release, options Options) []
 			continue
 		}
 
-		items = append(items, branchItem(release.NewBranch(context, target, entry), isNewTag))
+		if plan.Replaces != "" {
+			items = append(items, replacedItem(context, plan, entry))
+		} else {
+			items = append(items, branchItem(release.NewBranch(context, target, entry), isNewTag))
+		}
 
 		if isNewTag {
 			options.report("checking tag " + plan.Tag + " on " + remote)
@@ -238,6 +242,18 @@ func remotes(context context.Context, plan *release.Release, options Options) []
 	}
 
 	return items
+}
+
+// replacedItem checks a push branch final replaces is still where final saw
+// it, so the push replaces only what final listed.
+func replacedItem(context context.Context, plan *release.Release, entry string) Item {
+	remote, branch, _ := config.SplitPush(entry)
+
+	if plan.Git.Resolve(context, remote+"/"+branch) != plan.Replaces {
+		return Item{Name: "remote", Detail: entry + " moved since final started; run it again"}
+	}
+
+	return Item{Name: "remote", IsOK: true, Detail: entry + ", replaced"}
 }
 
 // branchItem says whether HEAD can go to a push branch. A new tag merges in

@@ -212,3 +212,51 @@ func TestFlowStableFinalNoChange(t *testing.T) {
 		t.Fatal("v1.1.0 is not on main")
 	}
 }
+
+// joinSession makes main hold a commit next lacks, with next's pre-release
+// tagged and pushed.
+func joinSession(t *testing.T, shipo string) *session {
+	t.Helper()
+
+	current := newSession(t, STABLE+shipo, map[string]string{"package.json": PACKAGE_JSON})
+	repo := current.repo
+
+	onNext(current, map[string]string{"package.json": NEXT_PACKAGE})
+	repo.Git("tag", "v1.1.0-next")
+	repo.Git("push", "--quiet", "-u", "origin", "next", "v1.1.0-next")
+
+	repo.Git("checkout", "--quiet", "main")
+	repo.Write(map[string]string{"hotfix.txt": "fix"})
+	repo.Commit("hotfix on main")
+	repo.Git("push", "--quiet", "origin", "main")
+	repo.Git("checkout", "--quiet", "next")
+
+	return current
+}
+
+// staleMain leaves a commit on origin/main that the local main lacks, as
+// before a pull, with next tagged at a pre-release.
+func staleMain(t *testing.T, shipo string, files map[string]string, tags ...string) *session {
+	t.Helper()
+
+	current := newSession(t, shipo, files)
+	repo := current.repo
+
+	for _, tag := range tags {
+		repo.Git("tag", tag)
+	}
+
+	repo.Git("push", "--quiet", "origin", "main", "--tags")
+	onNext(current, map[string]string{"feature.txt": "new"})
+	repo.Git("tag", "v1.2.0-next")
+	repo.Git("push", "--quiet", "-u", "origin", "next", "v1.2.0-next")
+
+	repo.Git("checkout", "--quiet", "main")
+	repo.Write(map[string]string{"hotfix.txt": "fix"})
+	repo.Commit("hotfix on main")
+	repo.Git("push", "--quiet", "origin", "main")
+	repo.Git("reset", "--quiet", "--hard", "HEAD~1")
+	repo.Git("checkout", "--quiet", "next")
+
+	return current
+}

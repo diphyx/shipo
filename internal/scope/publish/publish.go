@@ -154,7 +154,12 @@ func Push(context context.Context, plan *release.Release, output *ui.Terminal) e
 			return fmt.Errorf("push to %s: %w", entry, replaceError)
 		}
 
-		pushError := plan.Git.PushAtomic(context, task, remote, refspecs...)
+		lease := ""
+		if plan.Replaces != "" {
+			lease = "refs/heads/" + branch + ":" + plan.Replaces
+		}
+
+		pushError := plan.Git.PushAtomicLease(context, task, remote, lease, refspecs...)
 		if pushError != nil {
 			task.Fail()
 

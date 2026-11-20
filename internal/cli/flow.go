@@ -197,7 +197,7 @@ func (app *App) chooseLevel(context context.Context, target *release.Target, lev
 		return "", readError
 	}
 
-	title, levels, choices, menuError := levelMenu(target, current.Version)
+	title, levels, choices, menuError := levelMenu(context, target, current.Version)
 	if menuError != nil {
 		return "", menuError
 	}
@@ -210,9 +210,30 @@ func (app *App) chooseLevel(context context.Context, target *release.Target, lev
 	return levels[index], nil
 }
 
+// finalDetail says what final on a suffix branch releases, and where: from
+// the last pre-release tag when the branch moved on past it, as that is what
+// was tested.
+func finalDetail(context context.Context, target *release.Target, next semver.Version) string {
+	stable := target.Config.Bump.Stable
+
+	preview, hasPreview := target.LastPreview(context)
+	if !hasPreview {
+		return next.String() + " on " + stable
+	}
+
+	final, _ := preview.Version.Bump(semver.LEVEL_FINAL)
+	detail := final.String() + " on " + stable
+
+	if preview.Commit != target.Git.Resolve(context, target.HeadBranch) {
+		detail += ", from " + preview.Tag
+	}
+
+	return detail
+}
+
 // levelMenu builds the bump menu: the levels that fit the current version on
 // this branch, each with the version it gives.
-func levelMenu(target *release.Target, current semver.Version) (string, []semver.Level, []ui.Choice, error) {
+func levelMenu(context context.Context, target *release.Target, current semver.Version) (string, []semver.Level, []ui.Choice, error) {
 	levels := target.Levels(current)
 	choices := make([]ui.Choice, len(levels))
 
@@ -224,7 +245,7 @@ func levelMenu(target *release.Target, current semver.Version) (string, []semver
 
 		detail := next.String()
 		if target.IsStableFinal(level) {
-			detail += " on " + target.Config.Bump.Stable
+			detail = finalDetail(context, target, next)
 		}
 
 		choices[index] = ui.Choice{Label: string(level), Detail: detail}

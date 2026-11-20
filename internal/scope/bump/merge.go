@@ -12,7 +12,7 @@ import (
 // merge with no conflict, as the checks planned. Revert resets the merge
 // with the bump.
 func merge(context context.Context, plan *release.Release, output *ui.Terminal) error {
-	if !plan.Config.Publish.Push.Enabled() {
+	if !plan.Config.Publish.Push.Enabled() || plan.Replaces != "" {
 		return nil
 	}
 

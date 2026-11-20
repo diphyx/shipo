@@ -42,6 +42,65 @@ func (release *Release) highestBelow(tags []string, isWanted func(semver.Version
 	return best, bestVersion
 }
 
+// Preview is the last pre-release a suffix branch tagged: what was tested,
+// and what final releases.
+type Preview struct {
+	Tag     string
+	Commit  string
+	Version semver.Version
+}
+
+// LastPreview returns the suffix branch's highest pre-release tag on HEAD's
+// history, or false on a plain branch or with none yet.
+func (target *Target) LastPreview(context context.Context) (Preview, bool) {
+	if target.Suffix == "" {
+		return Preview{}, false
+	}
+
+	tags, _ := target.Git.Tags(context)
+	last := Preview{}
+	isFound := false
+
+	for _, tag := range target.ownTags(tags) {
+		if !target.Git.IsAncestor(context, tag, "HEAD") {
+			continue
+		}
+
+		parsed, _ := target.parseTag(tag)
+		if !isFound || parsed.Compare(last.Version) > 0 {
+			last = Preview{Tag: tag, Version: parsed}
+			isFound = true
+		}
+	}
+
+	if !isFound {
+		return Preview{}, false
+	}
+
+	last.Commit = target.Git.Resolve(context, last.Tag)
+
+	return last, true
+}
+
+// lastRelease returns the highest version among the tags the current
+// branch owns, or false with none.
+func (target *Target) lastRelease(context context.Context) (semver.Version, bool) {
+	tags, _ := target.Git.Tags(context)
+
+	last := semver.Version{}
+	isFound := false
+
+	for _, tag := range target.ownTags(tags) {
+		parsed, _ := target.parseTag(tag)
+		if !isFound || parsed.Compare(last) > 0 {
+			last = parsed
+			isFound = true
+		}
+	}
+
+	return last, isFound
+}
+
 // ownTags keeps the tags of this target that belong to the current branch.
 func (target *Target) ownTags(tags []string) []string {
 	var own []string

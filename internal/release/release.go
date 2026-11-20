@@ -141,6 +141,10 @@ type Release struct {
 	// IsRetag is a final whose tag already exists: like current, it moves
 	// the tag to the release commit and sends it out again.
 	IsRetag bool
+	// Replaces is the push branch's remote commit a final from a suffix
+	// branch replaces, dropping commits the suffix branch lacks: no merge
+	// before the bump, and a push with a lease on it. "" pushes as usual.
+	Replaces string
 	// Hash is the short hash of the release commit, once it exists.
 	Hash string
 	Date string
@@ -183,8 +187,15 @@ func NewFinal(context context.Context, target *Target, from semver.Version) (*Re
 	next, _ := from.Bump(semver.LEVEL_FINAL)
 	release := newRelease(context, target, current, semver.LEVEL_FINAL, next)
 
-	if target.owns(current.Version) && next.Compare(current.Version) < 0 {
-		return nil, fmt.Errorf("final: %s is below %s, the last release on %s; bump the pre-release first", next, current.Version, target.Config.Bump.Stable)
+	// The tags say what the stable branch released: its files may hold the
+	// suffix branch's version, after a merge or a replace.
+	last, isReleased := target.lastRelease(context)
+	if target.owns(current.Version) && (!isReleased || current.Version.Compare(last) > 0) {
+		last, isReleased = current.Version, true
+	}
+
+	if isReleased && next.Compare(last) < 0 {
+		return nil, fmt.Errorf("final: %s is below %s, the last release on %s; bump the pre-release first", next, last, target.Config.Bump.Stable)
 	}
 
 	return release, nil

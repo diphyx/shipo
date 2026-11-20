@@ -120,6 +120,19 @@ func (git *Git) Subject(context context.Context, revision string) (string, error
 	return git.output(context, "log", "-1", "--format=%s", revision)
 }
 
+// Log lists the commits of any of revisions that from lacks, newest first,
+// each as its short hash and subject.
+func (git *Git) Log(context context.Context, from string, revisions ...string) ([]string, error) {
+	arguments := append([]string{"log", "--format=%h %s", "^" + from}, revisions...)
+
+	log, logError := git.output(context, arguments...)
+	if logError != nil || log == "" {
+		return nil, logError
+	}
+
+	return strings.Split(log, "\n"), nil
+}
+
 // Tags lists every local tag.
 func (git *Git) Tags(context context.Context) ([]string, error) {
 	tags, tagsError := git.output(context, "tag", "--list")
@@ -183,6 +196,12 @@ func (git *Git) IsAncestor(context context.Context, ancestor string, descendant 
 	return git.run(context, "merge-base", "--is-ancestor", ancestor, descendant) == nil
 }
 
+// CanMergeAt reports whether two revisions merge with no conflict, in memory
+// only, like CanMerge.
+func (git *Git) CanMergeAt(context context.Context, ours string, theirs string) bool {
+	return git.run(context, "merge-tree", "--write-tree", "--quiet", ours, theirs) == nil
+}
+
 // CanMerge reports whether revision merges into HEAD with no conflict. It
 // merges in memory only: nothing is written. Before git 2.40 it is false.
 func (git *Git) CanMerge(context context.Context, revision string) bool {
@@ -195,15 +214,10 @@ func (git *Git) Merge(context context.Context, revision string) error {
 	return git.run(context, "merge", "--quiet", "--no-edit", revision)
 }
 
-// Rebase replays HEAD's branch on top of onto. On a conflict it aborts, so
-// the branch is left as it was.
-func (git *Git) Rebase(context context.Context, onto string) error {
-	rebaseError := git.run(context, "rebase", "--quiet", onto)
-	if rebaseError != nil {
-		_ = git.run(context, "rebase", "--abort")
-	}
-
-	return rebaseError
+// MergeAs is Merge with message for a merge commit, for a revision git would
+// only name by its hash.
+func (git *Git) MergeAs(context context.Context, revision string, message string) error {
+	return git.run(context, "merge", "--quiet", "--message", message, revision)
 }
 
 // FastForward moves HEAD's branch to revision, only when it is a fast-forward.
@@ -269,6 +283,16 @@ func (git *Git) ResetHard(context context.Context, revision string) error {
 	return git.run(context, "reset", "--hard", "--quiet", revision)
 }
 
+// DeleteBranch removes a local branch that isn't checked out.
+func (git *Git) DeleteBranch(context context.Context, branch string) error {
+	return git.run(context, "branch", "--quiet", "--delete", "--force", branch)
+}
+
+// CreateBranch makes a branch at a revision; it fails if the branch exists.
+func (git *Git) CreateBranch(context context.Context, branch string, revision string) error {
+	return git.run(context, "branch", "--quiet", branch, revision)
+}
+
 // MoveBranch points a branch that isn't checked out at a revision.
 func (git *Git) MoveBranch(context context.Context, branch string, revision string) error {
 	return git.run(context, "branch", "--force", branch, revision)
@@ -283,20 +307,22 @@ func (git *Git) DeleteRemoteTag(context context.Context, output io.Writer, remot
 	return git.Runner.Run(context, command)
 }
 
-// PushForce pushes a rewritten branch, only if the remote still has it at
-// expected, so a push someone else made since is never lost.
-func (git *Git) PushForce(context context.Context, output io.Writer, remote string, branch string, expected string) error {
-	ref := "refs/heads/" + branch
-	command := git.command("push", "--force-with-lease="+ref+":"+expected, remote, ref)
-	command.Output = output
-
-	return git.Runner.Run(context, command)
-}
-
 // PushAtomic pushes refspecs to a remote in one atomic push. Its output goes
 // to output, or to the runner's streams when output is nil.
 func (git *Git) PushAtomic(context context.Context, output io.Writer, remote string, refspecs ...string) error {
-	command := git.command(append([]string{"push", "--atomic", remote}, refspecs...)...)
+	return git.PushAtomicLease(context, output, remote, "", refspecs...)
+}
+
+// PushAtomicLease is PushAtomic that may also replace a branch, only if the
+// remote still has it where lease says, as "refs/heads/main:<commit>": a
+// push someone else made since is never lost. An empty lease is a plain push.
+func (git *Git) PushAtomicLease(context context.Context, output io.Writer, remote string, lease string, refspecs ...string) error {
+	arguments := []string{"push", "--atomic"}
+	if lease != "" {
+		arguments = append(arguments, "--force-with-lease="+lease)
+	}
+
+	command := git.command(append(append(arguments, remote), refspecs...)...)
 	command.Output = output
 
 	return git.Runner.Run(context, command)

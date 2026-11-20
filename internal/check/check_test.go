@@ -327,3 +327,24 @@ func TestFetchFailureSaysWhy(t *testing.T) {
 
 	failure(t, Run(context.Background(), planned(t, repo, testkit.NewRunner(), semver.LEVEL_PATCH), Everything()), "remote", "git fetch dead failed: ")
 }
+
+// TestReplacedMoved stops a replace whose push branch moved on the remote
+// after final read it: the push would drop commits final never listed.
+func TestReplacedMoved(t *testing.T) {
+	repo := testkit.NewRepo(t, "", map[string]string{"package.json": PACKAGE})
+	plan := planned(t, repo, testkit.NewRunner(), semver.LEVEL_PATCH)
+
+	plan.Replaces = repo.Git("rev-parse", "HEAD")
+
+	found, _ := item(Run(context.Background(), plan, Options{Tasks: []string{"push"}}), "remote")
+	if !found.IsOK || found.Detail != "origin/main, replaced" {
+		t.Fatalf("unmoved: %+v", found)
+	}
+
+	repo.Write(map[string]string{"later.txt": "later"})
+	repo.Commit("later")
+	repo.Git("push", "--quiet", "origin", "main")
+
+	items := Run(context.Background(), plan, Options{Tasks: []string{"push"}})
+	failure(t, items, "remote", "origin/main moved since final started")
+}
