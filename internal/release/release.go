@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/diphyx/shipo/internal/config"
@@ -62,6 +63,11 @@ func OpenConfig(context context.Context, runner process.Runner, loaded *config.C
 		return nil, relativeError
 	}
 
+	pushError := expandPush(context, repository, loaded)
+	if pushError != nil {
+		return nil, pushError
+	}
+
 	resolved, resolveError := version.Resolve(version.Settings{
 		Preset:  loaded.Version.Preset,
 		Source:  loaded.Version.Source,
@@ -80,6 +86,76 @@ func OpenConfig(context context.Context, runner process.Runner, loaded *config.C
 		Root:    root,
 		Folder:  filepath.ToSlash(folder),
 	}, nil
+}
+
+// expandPush fills {branch} and {remote} in publish.push with the current
+// branch and the remote it tracks, and rejects any other {name}.
+func expandPush(context context.Context, repository *git.Git, loaded *config.Config) error {
+	push := &loaded.Publish.Push
+
+	hasKeyword := false
+	for _, entry := range push.Items {
+		if strings.ContainsAny(entry, "{}") {
+			hasKeyword = true
+		}
+	}
+
+	if !hasKeyword {
+		return nil
+	}
+
+	branch, branchError := repository.Branch(context)
+	if branchError != nil {
+		return branchError
+	}
+
+	values := keyword.Values{}
+	if branch != "" {
+		values["branch"] = branch
+
+		remote := repository.UpstreamRemote(context, branch)
+		if remote != "" {
+			values["remote"] = remote
+		}
+	}
+
+	for index, entry := range push.Items {
+		expanded := keyword.Expand(entry, values)
+
+		if strings.ContainsAny(expanded, "{}") {
+			return fmt.Errorf("publish.push: %q: %w", entry, pushKeywordError(entry, branch, values))
+		}
+
+		_, _, splitError := config.SplitPush(expanded)
+		if splitError != nil {
+			return fmt.Errorf("publish.push: %w", splitError)
+		}
+
+		push.Items[index] = expanded
+	}
+
+	return nil
+}
+
+func pushKeywordError(entry string, branch string, values keyword.Values) error {
+	switch {
+	case branch == "" && strings.Contains(entry, "{branch}"):
+		{
+			return errors.New("{branch} needs a checked-out branch, HEAD is detached")
+		}
+	case branch == "" && strings.Contains(entry, "{remote}"):
+		{
+			return errors.New("{remote} needs a checked-out branch, HEAD is detached")
+		}
+	case strings.Contains(entry, "{remote}") && values["remote"] == "":
+		{
+			return fmt.Errorf("{remote} needs an upstream; %s tracks no remote (git push -u)", branch)
+		}
+	default:
+		{
+			return errors.New("only {branch} and {remote} work in push")
+		}
+	}
 }
 
 // Push returns the main push remote and branch, or false when push is off.

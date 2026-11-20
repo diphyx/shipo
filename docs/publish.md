@@ -34,9 +34,12 @@ Run? [y/N] n
 | -------------------------------- | ---------------------------- |
 | `"origin/main"`                  | push to `main` on `origin`   |
 | `["origin/main", "mirror/main"]` | push to each                 |
+| `"{remote}/{branch}"`            | push to the checked-out branch and the remote it tracks |
 | `false`                          | skip, and skip release and workflow |
 
 The commit and tag go together, in one atomic push. From a feature branch, both branches are pushed.
+
+In `push`, only `{branch}` (the checked-out branch) and `{remote}` (its upstream) work. One `.shipo` can then release from `main` and `next`. A detached HEAD, a branch with no upstream, or any other `{name}` is an error.
 
 ## Release
 

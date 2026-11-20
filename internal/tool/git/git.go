@@ -105,6 +105,16 @@ func (git *Git) Branch(context context.Context) (string, error) {
 	return branch, branchError
 }
 
+// UpstreamRemote returns the remote a branch tracks, or "" when it tracks none.
+func (git *Git) UpstreamRemote(context context.Context, branch string) string {
+	remote, configError := git.output(context, "config", "--get", "branch."+branch+".remote")
+	if configError != nil || remote == "." {
+		return ""
+	}
+
+	return remote
+}
+
 // Subject returns the first line of a commit message.
 func (git *Git) Subject(context context.Context, revision string) (string, error) {
 	return git.output(context, "log", "-1", "--format=%s", revision)
