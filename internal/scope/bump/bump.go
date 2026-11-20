@@ -141,13 +141,23 @@ func run(context context.Context, plan *release.Release, output *ui.Terminal, re
 			return addError
 		}
 
-		commitError := plan.Git.Commit(context, message, false)
-		if commitError != nil {
-			return commitError
-		}
+		// A retag can find the files at its version already: then the tag
+		// moves to HEAD with no commit.
+		if plan.Git.HasStaged(context) {
+			commitError := plan.Git.Commit(context, message, false)
+			if commitError != nil {
+				return commitError
+			}
 
-		result.IsCommitted = true
-		output.Done("commit", message)
+			result.IsCommitted = true
+			output.Done("commit", message)
+		} else {
+			output.Skip("commit", "nothing changed")
+		}
+	}
+
+	if plan.IsRetag {
+		return retag(context, plan, output, result)
 	}
 
 	tagError := plan.Git.Tag(context, plan.Tag, "Release "+plan.Tag)
@@ -161,8 +171,8 @@ func run(context context.Context, plan *release.Release, output *ui.Terminal, re
 	return nil
 }
 
-// retag puts the current version's tag on HEAD, so the same version can be
-// released again from a newer commit. A tag already on HEAD is kept; a tag on
+// retag puts the release's tag on HEAD, so the same version can be released
+// again from a newer commit: for current, and a final whose tag exists. A tag already on HEAD is kept; a tag on
 // another commit is moved, and Revert puts it back.
 func retag(context context.Context, plan *release.Release, output *ui.Terminal, result *Result) error {
 	tagged := plan.Git.Resolve(context, plan.Tag)

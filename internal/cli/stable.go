@@ -32,13 +32,6 @@ func (app *App) flowStable(context context.Context, target *release.Target) erro
 		return readError
 	}
 
-	final, _ := pre.Version.Bump(semver.LEVEL_FINAL)
-
-	tag := target.Version.TagName(target.Folder, final.String())
-	if repository.HasTag(context, tag) {
-		return fmt.Errorf("final: %s already exists; bump %s further first", tag, branch)
-	}
-
 	before := repository.Resolve(context, stable)
 	commits, _ := repository.CountCommits(context, stable, branch)
 

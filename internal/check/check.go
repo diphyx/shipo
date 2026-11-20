@@ -16,7 +16,6 @@ import (
 	"github.com/diphyx/shipo/internal/release"
 	"github.com/diphyx/shipo/internal/scope/build"
 	"github.com/diphyx/shipo/internal/scope/publish"
-	"github.com/diphyx/shipo/internal/text/semver"
 	"github.com/diphyx/shipo/internal/tool/process"
 )
 
@@ -200,7 +199,7 @@ func tools(context context.Context, target *release.Target, options Options) Ite
 func remotes(context context.Context, plan *release.Release, options Options) []Item {
 	target := plan.Target
 	// isNewTag is a bump that makes a new tag; current reuses its tag.
-	isNewTag := options.IsBump && plan.Level != semver.LEVEL_CURRENT
+	isNewTag := options.IsBump && !plan.MovesTag()
 
 	var items []Item
 

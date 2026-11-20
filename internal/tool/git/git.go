@@ -216,6 +216,11 @@ func (git *Git) CountCommits(context context.Context, from string, to string) (i
 	return strconv.Atoi(count)
 }
 
+// HasStaged reports whether the index holds changes to commit.
+func (git *Git) HasStaged(context context.Context) bool {
+	return git.run(context, "diff", "--cached", "--quiet") != nil
+}
+
 // Add stages files.
 func (git *Git) Add(context context.Context, paths ...string) error {
 	arguments := append([]string{"add", "--"}, paths...)

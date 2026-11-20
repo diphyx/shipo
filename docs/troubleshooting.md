@@ -29,6 +29,7 @@
 | `suffix: origin/main would get v1.3.0-next`     | `push = "{remote}/{branch}"`                       |
 | `suffix: python versions can't end in -next`    | name the branch `alpha`, `beta` or `rc`            |
 | `current: 1.3.0-next is a pre-release from another branch` | `final` releases it as `1.3.0`          |
+| `final: 1.2.0 is below 1.3.0, the last release on main` | `main` is ahead: bump `next`, then `shipo final` |
 | `final releases on main: run shipo final`       | `shipo final` in a terminal; the steps never switch branches |
 | `next and main conflict`                        | merge `main` into `next`, resolve, then `shipo final` |
 

@@ -104,6 +104,8 @@ $ shipo final
 - `next` moves up to the release, so the next `patch` there is `1.2.1-next`.
 - A failed local step undoes the bump, resets `main` and switches back to `next`.
 - A failed publish stays on `main`, as nothing is undone once publishing starts.
+- If `v1.2.0` is out already, `final` releases it again, as [`current`](#current) does: the tag moves to the new release commit and is pushed again.
+- If `main` released past it, as `1.3.0`, `final` stops: bump `next` first.
 - `shipo bump final` on `next` stops: the round trip is only in the flow.
 
 ## Current

@@ -138,9 +138,18 @@ type Release struct {
 	Next        semver.Version
 	Tag         string
 	PreviousTag string
+	// IsRetag is a final whose tag already exists: like current, it moves
+	// the tag to the release commit and sends it out again.
+	IsRetag bool
 	// Hash is the short hash of the release commit, once it exists.
 	Hash string
 	Date string
+}
+
+// MovesTag reports whether the release reuses an existing tag, moving it to
+// HEAD and replacing it on the remote: current, or a final whose tag exists.
+func (release *Release) MovesTag() bool {
+	return release.Level == semver.LEVEL_CURRENT || release.IsRetag
 }
 
 // NewRelease computes the next version and tag for a level.
@@ -172,12 +181,13 @@ func NewFinal(context context.Context, target *Target, from semver.Version) (*Re
 	}
 
 	next, _ := from.Bump(semver.LEVEL_FINAL)
+	release := newRelease(context, target, current, semver.LEVEL_FINAL, next)
 
-	if target.owns(current.Version) && next.Compare(current.Version) <= 0 {
-		return nil, fmt.Errorf("final: %s is not above %s, the last release on %s; bump the pre-release first", next, current.Version, target.Config.Bump.Stable)
+	if target.owns(current.Version) && next.Compare(current.Version) < 0 {
+		return nil, fmt.Errorf("final: %s is below %s, the last release on %s; bump the pre-release first", next, current.Version, target.Config.Bump.Stable)
 	}
 
-	return newRelease(context, target, current, semver.LEVEL_FINAL, next), nil
+	return release, nil
 }
 
 // newRelease builds a release from the current version to the next.
@@ -198,10 +208,13 @@ func newRelease(context context.Context, target *Target, current *version.Curren
 		Date:        time.Now().Format("2006-01-02"),
 	}
 
+	// A final whose tag is out already is released again, as current is.
+	release.IsRetag = level == semver.LEVEL_FINAL && target.Git.HasTag(context, release.Tag)
+
 	// The current version can be another branch's: 1.3.0-next on main after
-	// a merge, or 1.2.3 on a new next. The previous tag is then this
-	// branch's own, or the release it branched from.
-	if !target.owns(current.Version) {
+	// a merge, or 1.2.3 on a new next; or a retag's own. The previous tag is
+	// then this branch's last one below, or the release it branched from.
+	if !target.owns(current.Version) || release.PreviousTag == release.Tag {
 		found, _ := release.findPreviousTag(context)
 		if found != "" {
 			release.PreviousTag = found

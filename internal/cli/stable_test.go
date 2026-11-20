@@ -130,23 +130,37 @@ func TestFlowStableFinalGitTags(t *testing.T) {
 	}
 }
 
-// TestFlowStableFinalTaken stops final before the switch when its tag is
-// already out.
-func TestFlowStableFinalTaken(t *testing.T) {
+// TestFlowStableFinalRetag releases final again when its tag is out
+// already, as current does: the tag moves to the new release commit, on the
+// remote too.
+func TestFlowStableFinalRetag(t *testing.T) {
 	current := newSession(t, "[version]\npreset = \"git\"\n\n"+STABLE, nil)
 	repo := current.repo
 
+	repo.Git("tag", "v1.0.0")
+	repo.Write(map[string]string{"fix.txt": "fix"})
+	repo.Commit("fix")
 	repo.Git("tag", "v1.2.0")
+	repo.Git("push", "--quiet", "origin", "main", "v1.0.0", "v1.2.0")
+
 	onNext(current, map[string]string{"feature.txt": "new"})
 	repo.Git("tag", "v1.2.0-next")
 
 	flowError := current.app("n\n", true).Dispatch(context.Background(), []string{"final"})
-	if flowError == nil || !strings.Contains(flowError.Error(), "v1.2.0 already exists") {
-		t.Fatalf("want a taken-tag error, got %v\n%s", flowError, current.output)
+	if flowError != nil {
+		t.Fatalf("flow: %v\n%s", flowError, current.output)
 	}
 
-	if strings.Contains(current.output.String(), "switch") {
-		t.Fatalf("switched before stopping:\n%s", current.output)
+	text := current.output.String()
+	for _, line := range []string{"✓ bump       final · 1.2.0 → 1.2.0, again", "✓ tag        v1.2.0 moved to HEAD"} {
+		if !strings.Contains(text, line) {
+			t.Fatalf("missing %q in:\n%s", line, text)
+		}
+	}
+
+	main := repo.Git("rev-parse", "main")
+	if repo.Git("rev-parse", "v1.2.0^{commit}") != main || repo.RemoteGit("rev-parse", "v1.2.0^{commit}") != main {
+		t.Fatal("v1.2.0 was not moved to main, locally and on the remote")
 	}
 }
 
@@ -162,11 +176,39 @@ func TestFlowStableFinalNotAbove(t *testing.T) {
 	repo.Git("tag", "v1.2.0-next")
 
 	flowError := current.app("n\n", true).Dispatch(context.Background(), []string{"final"})
-	if flowError == nil || !strings.Contains(flowError.Error(), "is not above 1.3.0") {
-		t.Fatalf("want a not-above error, got %v\n%s", flowError, current.output)
+	if flowError == nil || !strings.Contains(flowError.Error(), "is below 1.3.0") {
+		t.Fatalf("want a below error, got %v\n%s", flowError, current.output)
 	}
 
 	if repo.Git("rev-parse", "main") != main || repo.Git("branch", "--show-current") != "next" {
 		t.Fatal("main was not reset, or not back on next")
+	}
+}
+
+// TestFlowStableFinalNoChange re-releases final when the files already hold
+// its version, as after an earlier final: no commit, the tag just moves.
+func TestFlowStableFinalNoChange(t *testing.T) {
+	// The lock file is staged after its refresh, even when it stays the same.
+	current := newSession(t, STABLE, map[string]string{"package.json": `{"name": "app", "version": "1.1.0"}`, "package-lock.json": "{}\n"})
+	repo := current.repo
+
+	repo.Git("tag", "v1.1.0")
+	repo.Git("push", "--quiet", "origin", "main", "v1.1.0")
+	onNext(current, map[string]string{"feature.txt": "new"})
+
+	flowError := current.app("n\n", true).Dispatch(context.Background(), []string{"final"})
+	if flowError != nil {
+		t.Fatalf("flow: %v\n%s", flowError, current.output)
+	}
+
+	text := current.output.String()
+	for _, line := range []string{"- commit     nothing changed", "✓ tag        v1.1.0 moved to HEAD"} {
+		if !strings.Contains(text, line) {
+			t.Fatalf("missing %q in:\n%s", line, text)
+		}
+	}
+
+	if repo.Git("rev-parse", "v1.1.0^{commit}") != repo.Git("rev-parse", "main") {
+		t.Fatal("v1.1.0 is not on main")
 	}
 }

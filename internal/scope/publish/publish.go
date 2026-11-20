@@ -15,7 +15,6 @@ import (
 	"github.com/diphyx/shipo/internal/config"
 	"github.com/diphyx/shipo/internal/release"
 	"github.com/diphyx/shipo/internal/text/keyword"
-	"github.com/diphyx/shipo/internal/text/semver"
 	"github.com/diphyx/shipo/internal/tool/github"
 	"github.com/diphyx/shipo/internal/tool/process"
 	"github.com/diphyx/shipo/internal/ui"
@@ -177,10 +176,10 @@ func Push(context context.Context, plan *release.Release, output *ui.Terminal) e
 	return nil
 }
 
-// replaceRemoteTag deletes the tag on the remote before current pushes it
+// replaceRemoteTag deletes the tag on the remote before a moved tag is pushed
 // again, so the push is a new tag event and tag workflows run again.
 func replaceRemoteTag(context context.Context, plan *release.Release, output io.Writer, remote string) error {
-	if plan.Level != semver.LEVEL_CURRENT {
+	if !plan.MovesTag() {
 		return nil
 	}
 
@@ -244,7 +243,7 @@ func Release(context context.Context, plan *release.Release, output *ui.Terminal
 	notes := ""
 
 	if plan.GitHub.HasRelease(context, plan.Tag) {
-		if plan.Level != semver.LEVEL_CURRENT {
+		if !plan.MovesTag() {
 			return fmt.Errorf("release %s already exists", plan.Tag)
 		}
 

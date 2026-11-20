@@ -318,5 +318,9 @@ func bumpDetail(plan *release.Release) string {
 		return fmt.Sprintf("%s · %s", plan.Level, plan.Next)
 	}
 
+	if plan.IsRetag {
+		return fmt.Sprintf("%s · %s → %s, again", plan.Level, plan.Previous, plan.Next)
+	}
+
 	return fmt.Sprintf("%s · %s → %s", plan.Level, plan.Previous, plan.Next)
 }
