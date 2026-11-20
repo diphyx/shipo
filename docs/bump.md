@@ -76,6 +76,7 @@ push = "{remote}/{branch}"
 - With git presets, each branch reads only its own tags: `next` the `-next` ones, `main` the ones with no suffix.
 - `{previous_tag}` is the branch's own, or on a first `-next` release, the release it branched from.
 - A suffix branch must push to itself; `shipo check` stops a push to another branch.
+- Its GitHub Release is a pre-release, never the latest.
 - Python and PHP take only some names: name the branch `alpha`, `beta` or `rc`.
 - A detached HEAD can't say its branch: a bump stops.
 

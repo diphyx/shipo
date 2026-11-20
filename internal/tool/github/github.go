@@ -64,9 +64,13 @@ func (github *GitHub) DeleteRelease(context context.Context, tag string) error {
 type Release struct {
 	Tag   string
 	Title string
-	// Notes is the body. Empty means notes are generated from the commits.
-	Notes string
-	Files []string
+	// Notes is the body. Empty means notes are generated from the commits
+	// since NotesFrom, or since the release GitHub picks when it is empty.
+	Notes     string
+	NotesFrom string
+	Files     []string
+	// IsPrerelease marks it a pre-release, so it is never the latest.
+	IsPrerelease bool
 }
 
 // CreateRelease creates a release for an existing tag. Its output goes to
@@ -74,10 +78,23 @@ type Release struct {
 func (github *GitHub) CreateRelease(context context.Context, output io.Writer, release Release) error {
 	arguments := []string{"release", "create", release.Tag, "--verify-tag", "--title", release.Title}
 
-	if release.Notes == "" {
-		arguments = append(arguments, "--generate-notes")
-	} else {
-		arguments = append(arguments, "--notes", release.Notes)
+	switch {
+	case release.Notes != "":
+		{
+			arguments = append(arguments, "--notes", release.Notes)
+		}
+	case release.NotesFrom != "":
+		{
+			arguments = append(arguments, "--generate-notes", "--notes-start-tag", release.NotesFrom)
+		}
+	default:
+		{
+			arguments = append(arguments, "--generate-notes")
+		}
+	}
+
+	if release.IsPrerelease {
+		arguments = append(arguments, "--prerelease")
 	}
 
 	arguments = append(arguments, release.Files...)

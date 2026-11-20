@@ -154,3 +154,17 @@ func TestLatestRun(t *testing.T) {
 		t.Fatalf("calls = %v", runner.Calls())
 	}
 }
+
+func TestCreateReleasePrerelease(t *testing.T) {
+	runner := testkit.NewRunner("gh")
+	hub := NewGitHub(runner, t.TempDir())
+
+	createError := hub.CreateRelease(context.Background(), nil, Release{Tag: "v1.2.0-next", Title: "v1.2.0-next", NotesFrom: "v1.1.0", IsPrerelease: true})
+	if createError != nil {
+		t.Fatal(createError)
+	}
+
+	if !runner.Called("gh release create v1.2.0-next --verify-tag --title v1.2.0-next --generate-notes --notes-start-tag v1.1.0 --prerelease") {
+		t.Fatalf("calls = %v", runner.Calls())
+	}
+}

@@ -17,7 +17,7 @@ import (
 // resets the stable branch and switches back; a publish failure stays on
 // the stable branch, as nothing is undone once publishing starts.
 func (app *App) flowStable(context context.Context, target *release.Target) error {
-	from := target.HeadBranch
+	branch := target.HeadBranch
 	stable := target.Config.Bump.Stable
 	repository := target.Git
 
@@ -26,8 +26,21 @@ func (app *App) flowStable(context context.Context, target *release.Target) erro
 		return readyError
 	}
 
+	// Read here: with git tags, the stable branch can't see this pre-release.
+	pre, readError := target.ReadCurrent(context)
+	if readError != nil {
+		return readError
+	}
+
+	final, _ := pre.Version.Bump(semver.LEVEL_FINAL)
+
+	tag := target.Version.TagName(target.Folder, final.String())
+	if repository.HasTag(context, tag) {
+		return fmt.Errorf("final: %s already exists; bump %s further first", tag, branch)
+	}
+
 	before := repository.Resolve(context, stable)
-	commits, _ := repository.CountCommits(context, stable, from)
+	commits, _ := repository.CountCommits(context, stable, branch)
 
 	switchError := repository.Switch(context, stable)
 	if switchError != nil {
@@ -45,20 +58,20 @@ func (app *App) flowStable(context context.Context, target *release.Target) erro
 			undoErrors = append(undoErrors, repository.ResetHard(detached, before))
 		}
 
-		undoErrors = append(undoErrors, repository.Switch(detached, from))
-		app.UI.Fail("switch", from+"; "+stable+" undone")
+		undoErrors = append(undoErrors, repository.Switch(detached, branch))
+		app.UI.Fail("switch", branch+"; "+stable+" undone")
 
 		return errors.Join(append([]error{cause}, undoErrors...)...)
 	}
 
-	mergeError := repository.Merge(context, from)
+	mergeError := repository.Merge(context, branch)
 	if mergeError != nil {
-		return undo(fmt.Errorf("merge %s: %w", from, mergeError))
+		return undo(fmt.Errorf("merge %s: %w", branch, mergeError))
 	}
 
-	app.UI.Done("merge", from+" ("+release.Commits(commits)+")")
+	app.UI.Done("merge", branch+" ("+release.Commits(commits)+")")
 
-	plan, result, bumpError := app.bumpStable(context, target)
+	plan, result, bumpError := app.bumpStable(context, target, pre.Version)
 	if bumpError != nil {
 		return undo(bumpError)
 	}
@@ -70,10 +83,10 @@ func (app *App) flowStable(context context.Context, target *release.Target) erro
 
 	publishError := app.publish(context, plan)
 	if publishError != nil {
-		return fmt.Errorf("%w\nyou are on %s: fix it, run the publish steps there, then merge %s into %s", publishError, stable, stable, from)
+		return fmt.Errorf("%w\nyou are on %s: fix it, run the publish steps there, then merge %s into %s", publishError, stable, stable, branch)
 	}
 
-	return app.updateBranch(context, target, from, stable)
+	return app.updateBranch(context, target, branch, stable)
 }
 
 // stableReady checks the suffix branch can go to the stable branch: a clean
@@ -98,14 +111,15 @@ func stableReady(context context.Context, target *release.Target) error {
 }
 
 // bumpStable opens the target again on the stable branch, so push and the
-// version are read there, then checks and bumps final.
-func (app *App) bumpStable(context context.Context, target *release.Target) (*release.Release, *bump.Result, error) {
+// version files are read there, then checks and bumps final from the
+// suffix branch's pre-release.
+func (app *App) bumpStable(context context.Context, target *release.Target, from semver.Version) (*release.Release, *bump.Result, error) {
 	stableTarget, openError := release.Open(context, app.Runner, target.Config.Dir)
 	if openError != nil {
 		return nil, nil, openError
 	}
 
-	plan, planError := release.NewRelease(context, stableTarget, semver.LEVEL_FINAL)
+	plan, planError := release.NewFinal(context, stableTarget, from)
 	if planError != nil {
 		return nil, nil, planError
 	}

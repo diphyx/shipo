@@ -268,7 +268,14 @@ func Release(context context.Context, plan *release.Release, output *ui.Terminal
 
 	task := output.Start("release", detail)
 
-	createError := plan.GitHub.CreateRelease(context, task, github.Release{Tag: plan.Tag, Title: plan.Tag, Notes: notes, Files: files})
+	createError := plan.GitHub.CreateRelease(context, task, github.Release{
+		Tag:          plan.Tag,
+		Title:        plan.Tag,
+		Notes:        notes,
+		NotesFrom:    plan.PreviousTag,
+		Files:        files,
+		IsPrerelease: plan.Next.Prerelease() != "",
+	})
 	if createError != nil {
 		task.Fail()
 

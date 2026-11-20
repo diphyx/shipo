@@ -145,13 +145,13 @@ type Release struct {
 
 // NewRelease computes the next version and tag for a level.
 func NewRelease(context context.Context, target *Target, level semver.Level) (*Release, error) {
+	if target.IsStableFinal(level) {
+		return nil, fmt.Errorf("final releases on %s: run shipo final, which switches there", target.Config.Bump.Stable)
+	}
+
 	current, readError := target.ReadCurrent(context)
 	if readError != nil {
 		return nil, readError
-	}
-
-	if target.IsStableFinal(level) {
-		return nil, fmt.Errorf("final releases on %s: run shipo final, which switches there", target.Config.Bump.Stable)
 	}
 
 	next, bumpError := target.Bump(current.Version, level)
@@ -159,6 +159,29 @@ func NewRelease(context context.Context, target *Target, level semver.Level) (*R
 		return nil, bumpError
 	}
 
+	return newRelease(context, target, current, level, next), nil
+}
+
+// NewFinal plans final on the stable branch for a pre-release made on a
+// suffix branch, as 1.2.0-next to 1.2.0. The pre-release is read before the
+// switch: with git tags, the stable branch only sees its own releases.
+func NewFinal(context context.Context, target *Target, from semver.Version) (*Release, error) {
+	current, readError := target.ReadCurrent(context)
+	if readError != nil {
+		return nil, readError
+	}
+
+	next, _ := from.Bump(semver.LEVEL_FINAL)
+
+	if target.owns(current.Version) && next.Compare(current.Version) <= 0 {
+		return nil, fmt.Errorf("final: %s is not above %s, the last release on %s; bump the pre-release first", next, current.Version, target.Config.Bump.Stable)
+	}
+
+	return newRelease(context, target, current, semver.LEVEL_FINAL, next), nil
+}
+
+// newRelease builds a release from the current version to the next.
+func newRelease(context context.Context, target *Target, current *version.Current, level semver.Level, next semver.Version) *Release {
 	previousTag := target.Version.TagName(target.Folder, current.Version.String())
 	if !target.Git.HasTag(context, previousTag) {
 		previousTag = ""
@@ -185,7 +208,7 @@ func NewRelease(context context.Context, target *Target, level semver.Level) (*R
 		}
 	}
 
-	return release, nil
+	return release
 }
 
 // ErrNoRelease is returned when HEAD isn't a release commit with its tag.
