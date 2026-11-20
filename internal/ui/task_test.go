@@ -166,3 +166,25 @@ func TestTaskSpins(t *testing.T) {
 		t.Fatal("the spinner must stop when the step ends")
 	}
 }
+
+// TestTaskLineFitsWidth keeps every drawn line within the terminal, tabs
+// counted as the terminal draws them: a wider line wraps, and each redraw
+// would leave a copy behind.
+func TestTaskLineFitsWidth(t *testing.T) {
+	terminal, output := live(60)
+	task := terminal.Start("build", "[2/2] go test ./... "+strings.Repeat("x", 80))
+
+	_, _ = fmt.Fprint(task, "ok  \tgithub.com/diphyx/shipo/internal/check\t(cached)\npartial\tline")
+
+	for _, frame := range strings.Split(output.String(), CLEAR) {
+		if strings.Contains(frame, "\t") {
+			t.Fatalf("a tab reached the live line: %q", frame)
+		}
+
+		if width := len([]rune(escapePattern.ReplaceAllString(frame, ""))); width > 60 {
+			t.Fatalf("line is %d wide, terminal 60: %q", width, frame)
+		}
+	}
+
+	task.Done()
+}

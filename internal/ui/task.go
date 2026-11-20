@@ -143,18 +143,20 @@ func (task *Task) draw() {
 	spinner := paint(terminal.IsColor, spinFrames[task.frame%len(spinFrames)], STYLE_BOLD, STYLE_CYAN)
 	head := spinner + " " + terminal.style(pad(task.label, LABEL_WIDTH), STYLE_BOLD)
 	visible := 2 + LABEL_WIDTH
+	width := terminal.width()
 
 	if task.detail != "" {
-		head += " " + task.detail
-		visible += 1 + len([]rune(task.detail))
+		detail := cut(flatten(task.detail), max(width-visible-2, 1))
+		head += " " + detail
+		visible += 1 + len([]rune(detail))
 	}
 
-	latest := strings.TrimSpace(escapePattern.ReplaceAllString(task.partial.String(), ""))
+	latest := flatten(escapePattern.ReplaceAllString(task.partial.String(), ""))
 	if latest == "" {
-		latest = task.latest
+		latest = flatten(task.latest)
 	}
 
-	room := terminal.width() - visible - 5
+	room := width - visible - 5
 	if latest != "" && room > 8 {
 		head += "  " + terminal.style("› "+cut(latest, room), STYLE_DIM)
 	}
@@ -217,6 +219,13 @@ func (task *Task) finish() {
 	if task.terminal.IsLive {
 		_, _ = fmt.Fprint(task.terminal.Out, "\r\x1b[2K")
 	}
+}
+
+// flatten puts text on one line of single spaces. A tab or a newline would
+// make the live line wider than it counts, so it wraps, and the redraw
+// leaves a copy behind on every frame.
+func flatten(text string) string {
+	return strings.Join(strings.Fields(text), " ")
 }
 
 // cut shortens text to width characters, with an ellipsis.
