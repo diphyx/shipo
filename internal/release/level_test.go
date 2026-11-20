@@ -25,7 +25,7 @@ func TestLevels(t *testing.T) {
 		current semver.Version
 		want    string
 	}{
-		{"next at 1.2.0", next, plain, "patch minor major"},
+		{"next at 1.2.0", next, plain, "final patch minor major"},
 		{"next at 1.2.0-next", next, preview, "final patch minor major current"},
 		{"main at 1.2.0-next", main, preview, "final patch minor major"},
 		{"main at 1.2.0", main, plain, "patch minor major current"},
@@ -42,11 +42,13 @@ func TestLevels(t *testing.T) {
 		}
 	}
 
-	_, finalError := next.Bump(plain, semver.LEVEL_FINAL)
+	beta := semver.Version{Major: 1, Minor: 2, Suffix: "-beta"}
+
+	_, finalError := next.Bump(beta, semver.LEVEL_FINAL)
 	_, currentError := main.Bump(preview, semver.LEVEL_CURRENT)
 
 	if finalError == nil || currentError == nil {
-		t.Fatalf("want final of a plain version on next and current of a -next version on main to fail: %v %v", finalError, currentError)
+		t.Fatalf("want final of a -beta version on next and current of a -next version on main to fail: %v %v", finalError, currentError)
 	}
 
 	if !next.IsStableFinal(semver.LEVEL_FINAL) || main.IsStableFinal(semver.LEVEL_FINAL) {

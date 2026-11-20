@@ -22,8 +22,9 @@ func (target *Target) Levels(current semver.Version) []semver.Level {
 
 // allows says whether a level fits the current version on this branch:
 // current needs the branch's own version, so it can't reuse another
-// branch's tag. final needs a pre-release: another branch's on a plain one,
-// or on a suffix branch its own, released on the stable branch.
+// branch's tag. final needs a pre-release from another branch on a plain
+// one. On a suffix branch it releases on the stable branch: its own
+// pre-release, or a plain version again, as after an earlier final.
 func (target *Target) allows(current semver.Version, level semver.Level) error {
 	if target.suffixError != nil {
 		if level == semver.LEVEL_CURRENT {
@@ -48,7 +49,7 @@ func (target *Target) allows(current semver.Version, level semver.Level) error {
 		}
 	case semver.LEVEL_FINAL:
 		{
-			if target.Suffix != "" && !isOwn {
+			if target.Suffix != "" && !isOwn && current.Prerelease() != "" {
 				return fmt.Errorf("final: %s is not a -%s version", current, target.Suffix)
 			}
 

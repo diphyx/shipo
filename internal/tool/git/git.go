@@ -195,6 +195,17 @@ func (git *Git) Merge(context context.Context, revision string) error {
 	return git.run(context, "merge", "--quiet", "--no-edit", revision)
 }
 
+// Rebase replays HEAD's branch on top of onto. On a conflict it aborts, so
+// the branch is left as it was.
+func (git *Git) Rebase(context context.Context, onto string) error {
+	rebaseError := git.run(context, "rebase", "--quiet", onto)
+	if rebaseError != nil {
+		_ = git.run(context, "rebase", "--abort")
+	}
+
+	return rebaseError
+}
+
 // FastForward moves HEAD's branch to revision, only when it is a fast-forward.
 func (git *Git) FastForward(context context.Context, revision string) error {
 	return git.run(context, "merge", "--quiet", "--ff-only", revision)
@@ -267,6 +278,16 @@ func (git *Git) MoveBranch(context context.Context, branch string, revision stri
 // the runner's streams when output is nil.
 func (git *Git) DeleteRemoteTag(context context.Context, output io.Writer, remote string, tag string) error {
 	command := git.command("push", remote, "--delete", "refs/tags/"+tag)
+	command.Output = output
+
+	return git.Runner.Run(context, command)
+}
+
+// PushForce pushes a rewritten branch, only if the remote still has it at
+// expected, so a push someone else made since is never lost.
+func (git *Git) PushForce(context context.Context, output io.Writer, remote string, branch string, expected string) error {
+	ref := "refs/heads/" + branch
+	command := git.command("push", "--force-with-lease="+ref+":"+expected, remote, ref)
 	command.Output = output
 
 	return git.Runner.Run(context, command)
