@@ -6,6 +6,7 @@
 [bump]
 level  = "ask"
 commit = "chore: release v{version}"
+suffix = ["next"]
 ```
 
 ## Level
@@ -39,6 +40,33 @@ Move with `↑` `↓` and press `enter`, or press `1`–`4`. Without a terminal,
 
 - The commit holds the version files and the lock file. Its message takes [keywords](keywords.md), but not `{hash}`.
 - The tag is `v{version}`, `<folder>/v{version}` in a subfolder, or the pattern for git presets.
+
+## Suffix
+
+Branches that release on their own line, such as `next` beside `main`, add their name to the version:
+
+```toml
+[bump]
+suffix = ["next", "release/*"]   # a branch, a glob, a list, or false
+
+[publish]
+push = "{remote}/{branch}"
+```
+
+| Branch        | `1.2.0` + `minor`   | Tag                  |
+| ------------- | ------------------- | -------------------- |
+| `main`        | `1.3.0`             | `v1.3.0`             |
+| `next`        | `1.3.0-next`        | `v1.3.0-next`        |
+| `release/2.x` | `1.3.0-release-2.x` | `v1.3.0-release-2.x` |
+
+- The suffix goes in the version files too, so packages and images don't collide. A `/` becomes `-`.
+- A listed branch bumps from its own version: `1.3.0-next` + `patch` is `1.3.1-next`.
+- On another branch, a merged pre-release is finished: `1.3.0-next` + `minor` is `1.3.0`, as npm does.
+- With git presets, each branch reads only its own tags: `next` the `-next` ones, `main` the ones with no suffix.
+- `{previous_tag}` is the branch's own, or on a first `-next` release, the release it branched from.
+- A suffix branch must push to itself; `shipo check` stops a push to another branch.
+- Python and PHP take only some names: name the branch `alpha`, `beta` or `rc`.
+- A detached HEAD can't say its branch: a bump stops.
 
 ## Current
 

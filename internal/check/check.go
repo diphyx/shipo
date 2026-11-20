@@ -97,6 +97,8 @@ func Run(context context.Context, plan *release.Release, options Options) []Item
 		if locksError != nil {
 			items = append(items, Item{Name: "lock", Detail: locksError.Error()})
 		}
+
+		items = append(items, suffix(plan)...)
 	}
 
 	if publish.IsSet(target, publish.TASK_PUSH) && containsTask(options.Tasks, publish.TASK_PUSH) {

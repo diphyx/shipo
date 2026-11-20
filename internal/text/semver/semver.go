@@ -94,37 +94,34 @@ func (version Version) Bump(level Level) (Version, error) {
 	return Version{}, fmt.Errorf("cannot bump with level %q", level)
 }
 
-// Compare returns -1, 0 or 1. A pre-release sorts before its release.
-func (version Version) Compare(other Version) int {
-	pairs := [][2]int{
-		{version.Major, other.Major},
-		{version.Minor, other.Minor},
-		{version.Patch, other.Patch},
+// Promote returns the release a pre-release leads to, as npm does: 1.3.0-next
+// with minor gives 1.3.0, and 1.3.1-next with minor gives 1.4.0. A release is
+// bumped as usual.
+func (version Version) Promote(level Level) (Version, error) {
+	if version.Prerelease() == "" {
+		return version.Bump(level)
 	}
 
-	for _, pair := range pairs {
-		if pair[0] != pair[1] {
-			if pair[0] < pair[1] {
-				return -1
+	release := Version{Major: version.Major, Minor: version.Minor, Patch: version.Patch}
+
+	switch level {
+	case LEVEL_MAJOR:
+		{
+			if version.Minor == 0 && version.Patch == 0 {
+				return release, nil
 			}
-
-			return 1
+		}
+	case LEVEL_MINOR:
+		{
+			if version.Patch == 0 {
+				return release, nil
+			}
+		}
+	case LEVEL_PATCH:
+		{
+			return release, nil
 		}
 	}
 
-	isPre := version.Suffix != "" && version.Suffix[0] == '-'
-	isOtherPre := other.Suffix != "" && other.Suffix[0] == '-'
-
-	switch {
-	case isPre && !isOtherPre:
-		{
-			return -1
-		}
-	case !isPre && isOtherPre:
-		{
-			return 1
-		}
-	}
-
-	return 0
+	return version.Bump(level)
 }

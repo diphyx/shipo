@@ -185,7 +185,11 @@ func (app *App) chooseLevel(context context.Context, target *release.Target, lev
 	choices := make([]ui.Choice, len(semver.Levels))
 
 	for index, option := range semver.Levels {
-		next, _ := current.Version.Bump(option)
+		next, bumpError := target.Bump(current.Version, option)
+		if bumpError != nil {
+			return "", bumpError
+		}
+
 		choices[index] = ui.Choice{Label: string(option), Detail: next.String()}
 	}
 

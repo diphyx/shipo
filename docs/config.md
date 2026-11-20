@@ -13,6 +13,7 @@ Every scope and key is optional.
 | `version` `pattern` | a field, a text pattern, or `/regex/`     | from the preset             |
 | [`bump`](bump.md) `level` | `ask` `major` `minor` `patch` `current` | `ask`                     |
 | `bump` `commit`     | a message                                 | `chore: release v{version}` |
+| `bump` `suffix`     | a branch, a list, or `false`              | `false`                     |
 | [`build`](build.md) `dir` | a folder                            | the `.shipo` folder         |
 | `build` `command`   | a command, or a list                      | none                        |
 | `build` `environment` | `NAME=value`, or a list                 | none                        |

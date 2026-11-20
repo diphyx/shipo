@@ -20,6 +20,7 @@ pattern = "version"               # a field path, a text pattern with {version},
 [bump]
 level  = "ask"                    # ask | major | minor | patch | current
 commit = "chore: release v{version}"
+suffix = ["next"]                 # a branch or glob | a list | false: on next, 1.3.0-next
 
 [build]
 dir         = "."
@@ -60,6 +61,7 @@ With several `.shipo` in the repo, add `-t <folder>` to each command, such as `s
 - Never put secrets in `.shipo`; it is committed. Each tool keeps its own login.
 - `shipo bump` merges the push branch's new commits first when they merge cleanly; on a conflict it stops: ask the user to pull and resolve.
 - `release` and `workflow` need `push`; with `push = false` they are skipped.
+- A branch in `bump.suffix` releases `1.3.0-next` and must push to itself: `push = "{remote}/{branch}"`.
 - `shipo bump current` re-releases the same version: it moves the tag to HEAD and re-pushes it. Ask the user before running it.
 - After a failure, run `shipo check` to see where the release stands, then run the missing step again.
 - If unsure, ask the user.

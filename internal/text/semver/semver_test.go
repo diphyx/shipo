@@ -49,18 +49,6 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestCompare(t *testing.T) {
-	order := []string{"0.9.9", "1.0.0-beta", "1.0.0", "1.0.1", "1.10.0", "2.0.0"}
-	for index := 1; index < len(order); index++ {
-		lower, _ := Parse(order[index-1])
-		higher, _ := Parse(order[index])
-
-		if lower.Compare(higher) != -1 || higher.Compare(lower) != 1 {
-			t.Fatalf("%s should sort before %s", lower, higher)
-		}
-	}
-}
-
 func TestParseLevel(t *testing.T) {
 	for _, name := range []string{"ask", "major", "minor", "patch", "current"} {
 		level, parseError := ParseLevel(name)
@@ -93,14 +81,29 @@ func TestBumpAskAndSuffix(t *testing.T) {
 	}
 }
 
-func TestCompareEqual(t *testing.T) {
-	left, _ := Parse("1.0.0+1")
-	right, _ := Parse("1.0.0+2")
-	preLeft, _ := Parse("1.0.0-a")
-	preRight, _ := Parse("1.0.0-b")
+func TestPromote(t *testing.T) {
+	cases := []struct {
+		from  string
+		level Level
+		want  string
+	}{
+		{"1.3.0-next", LEVEL_PATCH, "1.3.0"},
+		{"1.3.0-next", LEVEL_MINOR, "1.3.0"},
+		{"1.3.0-next", LEVEL_MAJOR, "2.0.0"},
+		{"2.0.0-next", LEVEL_MAJOR, "2.0.0"},
+		{"1.3.1-next", LEVEL_MINOR, "1.4.0"},
+		{"1.3.1-next", LEVEL_PATCH, "1.3.1"},
+		{"1.3.0-next", LEVEL_CURRENT, "1.3.0-next"},
+		{"1.3.0", LEVEL_PATCH, "1.3.1"},
+	}
 
-	if left.Compare(right) != 0 || preLeft.Compare(preRight) != 0 {
-		t.Fatal("build metadata and pre-release labels don't order versions here")
+	for _, test := range cases {
+		version, _ := Parse(test.from)
+
+		next, promoteError := version.Promote(test.level)
+		if promoteError != nil || next.String() != test.want {
+			t.Fatalf("%s %s = %s %v, want %s", test.from, test.level, next, promoteError, test.want)
+		}
 	}
 }
 

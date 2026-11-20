@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -38,6 +39,9 @@ type Version struct {
 type Bump struct {
 	Level  string
 	Commit string
+	// Suffix lists the branches, or globs, whose versions take the branch
+	// name as a pre-release, such as 1.3.0-next.
+	Suffix Switch
 }
 
 // Build is the [build] scope.
@@ -166,6 +170,18 @@ func (config *Config) validate() error {
 		_, _, splitError := SplitPush(target)
 		if splitError != nil {
 			return fmt.Errorf("publish.push: %w", splitError)
+		}
+	}
+
+	suffix := config.Bump.Suffix
+	if suffix.IsOn {
+		return errors.New("bump.suffix: want a branch, a list, or false")
+	}
+
+	for _, branch := range suffix.Items {
+		_, matchError := path.Match(branch, "")
+		if branch == "" || matchError != nil {
+			return fmt.Errorf("bump.suffix: %q is not a branch or a glob", branch)
 		}
 	}
 

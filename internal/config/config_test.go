@@ -79,6 +79,8 @@ func TestParseErrors(t *testing.T) {
 		"push true":        "[publish]\npush = true",
 		"push no branch":   "[publish]\npush = \"origin\"",
 		"workflow true":    "[publish]\nworkflow = true",
+		"suffix true":      "[bump]\nsuffix = true",
+		"suffix bad glob":  "[bump]\nsuffix = \"[next\"",
 		"bad environment":  "[build]\ncommand = \"x\"\nenvironment = \"NOEQUALS\"",
 		"empty list":       "[build]\ncommand = []",
 		"non-string entry": "[publish]\ncommand = [1]",
@@ -226,5 +228,21 @@ func TestCommentsOnly(t *testing.T) {
 
 	if config.Bump.Level != DEFAULT_LEVEL {
 		t.Fatal("defaults not applied")
+	}
+}
+
+func TestParseSuffix(t *testing.T) {
+	config, parseError := Parse("[bump]\nsuffix = [\"next\", \"release/*\"]\n")
+	if parseError != nil {
+		t.Fatal(parseError)
+	}
+
+	if !config.Bump.Suffix.Enabled() || len(config.Bump.Suffix.Items) != 2 {
+		t.Fatalf("suffix = %+v", config.Bump.Suffix)
+	}
+
+	off, _ := Parse("[bump]\nsuffix = false\n")
+	if off.Bump.Suffix.Enabled() {
+		t.Fatal("suffix = false must be off")
 	}
 }

@@ -31,6 +31,7 @@ pattern = "version"              # a field, a text pattern with {version}, or /r
 [bump]
 level  = "ask"                   # ask major minor patch current
 commit = "chore: release v{version}"
+suffix = ["next"]                # branches whose versions end in -<branch>, a list, or false
 
 [build]
 dir         = "."

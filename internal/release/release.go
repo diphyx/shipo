@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/diphyx/shipo/internal/config"
@@ -29,6 +28,13 @@ type Target struct {
 	// Root is the repository's top folder; Folder is the target relative to it.
 	Root   string
 	Folder string
+	// HeadBranch is the checked-out branch, read only when push or
+	// bump.suffix depend on it. Suffix is the pre-release it adds, from
+	// bump.suffix, such as "next"; "" on a plain branch.
+	HeadBranch string
+	Suffix     string
+
+	suffixError error
 }
 
 // Open finds the nearest .shipo from dir and loads its target.
@@ -63,7 +69,12 @@ func OpenConfig(context context.Context, runner process.Runner, loaded *config.C
 		return nil, relativeError
 	}
 
-	pushError := expandPush(context, repository, loaded)
+	branch, branchError := readBranch(context, repository, loaded)
+	if branchError != nil {
+		return nil, branchError
+	}
+
+	pushError := expandPush(context, repository, loaded, branch)
 	if pushError != nil {
 		return nil, pushError
 	}
@@ -77,7 +88,7 @@ func OpenConfig(context context.Context, runner process.Runner, loaded *config.C
 		return nil, resolveError
 	}
 
-	return &Target{
+	target := &Target{
 		Config:  loaded,
 		Runner:  runner,
 		Git:     repository,
@@ -85,89 +96,16 @@ func OpenConfig(context context.Context, runner process.Runner, loaded *config.C
 		Version: resolved,
 		Root:    root,
 		Folder:  filepath.ToSlash(folder),
-	}, nil
-}
 
-// expandPush fills {branch} and {remote} in publish.push with the current
-// branch and the remote it tracks, and rejects any other {name}.
-func expandPush(context context.Context, repository *git.Git, loaded *config.Config) error {
-	push := &loaded.Publish.Push
-
-	hasKeyword := false
-	for _, entry := range push.Items {
-		if strings.ContainsAny(entry, "{}") {
-			hasKeyword = true
-		}
+		HeadBranch: branch,
 	}
 
-	if !hasKeyword {
-		return nil
+	suffixError := target.loadSuffix(branch)
+	if suffixError != nil {
+		return nil, suffixError
 	}
 
-	branch, branchError := repository.Branch(context)
-	if branchError != nil {
-		return branchError
-	}
-
-	values := keyword.Values{}
-	if branch != "" {
-		values["branch"] = branch
-
-		remote := repository.UpstreamRemote(context, branch)
-		if remote != "" {
-			values["remote"] = remote
-		}
-	}
-
-	for index, entry := range push.Items {
-		expanded := keyword.Expand(entry, values)
-
-		if strings.ContainsAny(expanded, "{}") {
-			return fmt.Errorf("publish.push: %q: %w", entry, pushKeywordError(entry, branch, values))
-		}
-
-		_, _, splitError := config.SplitPush(expanded)
-		if splitError != nil {
-			return fmt.Errorf("publish.push: %w", splitError)
-		}
-
-		push.Items[index] = expanded
-	}
-
-	return nil
-}
-
-func pushKeywordError(entry string, branch string, values keyword.Values) error {
-	switch {
-	case branch == "" && strings.Contains(entry, "{branch}"):
-		{
-			return errors.New("{branch} needs a checked-out branch, HEAD is detached")
-		}
-	case branch == "" && strings.Contains(entry, "{remote}"):
-		{
-			return errors.New("{remote} needs a checked-out branch, HEAD is detached")
-		}
-	case strings.Contains(entry, "{remote}") && values["remote"] == "":
-		{
-			return fmt.Errorf("{remote} needs an upstream; %s tracks no remote (git push -u)", branch)
-		}
-	default:
-		{
-			return errors.New("only {branch} and {remote} work in push")
-		}
-	}
-}
-
-// Push returns the main push remote and branch, or false when push is off.
-func (target *Target) Push() (string, string, bool) {
-	push := target.Config.Publish.Push
-	if !push.Enabled() {
-		return "", "", false
-	}
-
-	remote, branch, _ := config.SplitPush(push.Items[0])
-
-	return remote, branch, true
+	return target, nil
 }
 
 // ReadCurrent reads the current version.
@@ -175,12 +113,16 @@ func (target *Target) ReadCurrent(context context.Context) (*version.Current, er
 	var tags []string
 
 	if target.Version.IsGit {
+		if target.suffixError != nil {
+			return nil, target.suffixError
+		}
+
 		listed, tagsError := target.Git.Tags(context)
 		if tagsError != nil {
 			return nil, tagsError
 		}
 
-		tags = listed
+		tags = target.ownTags(listed)
 	}
 
 	return version.Read(target.Version, tags)
@@ -208,7 +150,7 @@ func NewRelease(context context.Context, target *Target, level semver.Level) (*R
 		return nil, readError
 	}
 
-	next, bumpError := current.Version.Bump(level)
+	next, bumpError := target.Bump(current.Version, level)
 	if bumpError != nil {
 		return nil, bumpError
 	}
@@ -218,7 +160,7 @@ func NewRelease(context context.Context, target *Target, level semver.Level) (*R
 		previousTag = ""
 	}
 
-	return &Release{
+	release := &Release{
 		Target:      target,
 		Current:     current,
 		Level:       level,
@@ -227,7 +169,19 @@ func NewRelease(context context.Context, target *Target, level semver.Level) (*R
 		Tag:         target.Version.TagName(target.Folder, next.String()),
 		PreviousTag: previousTag,
 		Date:        time.Now().Format("2006-01-02"),
-	}, nil
+	}
+
+	// The current version can be another branch's: 1.3.0-next on main after
+	// a merge, or 1.2.3 on a new next. The previous tag is then this
+	// branch's own, or the release it branched from.
+	if !target.isOwnTag(current.Version) {
+		found, _ := release.findPreviousTag(context)
+		if found != "" {
+			release.PreviousTag = found
+		}
+	}
+
+	return release, nil
 }
 
 // ErrNoRelease is returned when HEAD isn't a release commit with its tag.
@@ -262,55 +216,6 @@ func FromHead(context context.Context, target *Target) (*Release, error) {
 	release.LoadHash(context)
 
 	return release, nil
-}
-
-func (release *Release) findPreviousTag(context context.Context) (string, semver.Version) {
-	tags, _ := release.Git.Tags(context)
-
-	best := ""
-	bestVersion := semver.Version{}
-
-	for _, tag := range tags {
-		parsed, isMatch := release.parseTag(tag)
-		if !isMatch || parsed.Compare(release.Next) >= 0 {
-			continue
-		}
-
-		if best == "" || parsed.Compare(bestVersion) > 0 {
-			best = tag
-			bestVersion = parsed
-		}
-	}
-
-	return best, bestVersion
-}
-
-func (release *Release) parseTag(tag string) (semver.Version, bool) {
-	prefix := release.Version.TagName(release.Folder, "")
-
-	if release.Version.IsGit {
-		pattern, compileError := version.ParseTag(release.Version.Patterns[0])
-		if compileError != nil {
-			return semver.Version{}, false
-		}
-
-		match, isMatch := pattern.MatchFull(tag)
-		if !isMatch {
-			return semver.Version{}, false
-		}
-
-		parsed, parseError := semver.Parse(match.Version)
-
-		return parsed, parseError == nil
-	}
-
-	if len(tag) <= len(prefix) || tag[:len(prefix)] != prefix {
-		return semver.Version{}, false
-	}
-
-	parsed, parseError := semver.Parse(tag[len(prefix):])
-
-	return parsed, parseError == nil
 }
 
 // LoadHash reads the short hash of HEAD into the release.
