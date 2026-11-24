@@ -115,7 +115,7 @@ func Describe(plan *release.Release, task string) []string {
 				return []string{plan.Tag}
 			}
 
-			return []string{plan.Tag + " + " + strings.Join(settings.Release.Items, ", ")}
+			return []string{plan.Tag + " + " + strings.Join(keyword.ExpandAll(settings.Release.Items, values), ", ")}
 		}
 	case TASK_WORKFLOW:
 		{
@@ -196,12 +196,13 @@ func replaceRemoteTag(context context.Context, plan *release.Release, output io.
 	return plan.Git.DeleteRemoteTag(context, output, remote, plan.Tag)
 }
 
-// ReleaseFiles expands the release paths into files. Each path must match.
-func ReleaseFiles(target *release.Target) ([]string, error) {
+// ReleaseFiles expands the keywords in the release paths, then the paths into
+// files. Each path must match.
+func ReleaseFiles(plan *release.Release) ([]string, error) {
 	var files []string
 
-	for _, path := range target.Config.Publish.Release.Items {
-		pattern := filepath.Join(target.Config.Dir, filepath.FromSlash(path))
+	for _, path := range keyword.ExpandAll(plan.Config.Publish.Release.Items, plan.Values()) {
+		pattern := filepath.Join(plan.Config.Dir, filepath.FromSlash(path))
 
 		info, statError := os.Stat(pattern)
 		if statError == nil && info.IsDir() {
@@ -240,7 +241,7 @@ func Release(context context.Context, plan *release.Release, output *ui.Terminal
 		return ErrNeedsPush
 	}
 
-	files, filesError := ReleaseFiles(plan.Target)
+	files, filesError := ReleaseFiles(plan)
 	if filesError != nil {
 		return filesError
 	}

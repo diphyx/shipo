@@ -48,8 +48,9 @@ In `push`, only `{branch}` (the checked-out branch) and `{remote}` (its upstream
 | `true`                             | a GitHub Release, no files  |
 | `"dist/*.tar.gz"`                  | with the matching files     |
 | `["dist/*", "checksums.txt"]`      | with files from each path   |
+| `"dist/app-{version}.zip"`         | with this version's file    |
 
-The title is the tag; the notes are generated from the commits since `{previous_tag}`. Each path must match a file. A [suffix](bump.md#suffix) version, such as `v1.3.0-next`, is a pre-release on GitHub, so it is never the latest.
+The title is the tag; the notes are generated from the commits since `{previous_tag}`. Each path must match a file. [Keywords](keywords.md) work in paths: `dist/app-{version}.zip` takes only this build's file, where `dist/*.zip` also takes older ones left in `dist`. A [suffix](bump.md#suffix) version, such as `v1.3.0-next`, is a pre-release on GitHub, so it is never the latest.
 
 ## Workflow
 

@@ -96,7 +96,7 @@ func (app *App) prepare(context context.Context, plan *release.Release, result *
 	}
 
 	if publish.IsSet(plan.Target, publish.TASK_RELEASE) {
-		_, filesError := publish.ReleaseFiles(plan.Target)
+		_, filesError := publish.ReleaseFiles(plan)
 		if filesError != nil {
 			if result != nil {
 				revertError := bump.Revert(context, plan.Target, result)

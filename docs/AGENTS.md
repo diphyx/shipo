@@ -46,7 +46,7 @@ workflow = "build.yml version={tag}"
 command  = "npm publish"
 ```
 
-Keywords: `{version}` `{previous}` `{major}` `{minor}` `{patch}` `{tag}` `{previous_tag}` `{bump}` `{hash}` `{date}` `{branch}` `{remote}` `{target}`.
+Keywords: `{version}` `{previous}` `{major}` `{minor}` `{patch}` `{tag}` `{previous_tag}` `{bump}` `{hash}` `{date}` `{branch}` `{remote}` `{target}`. They work in `bump.commit`, `build` and `publish`, release paths included.
 
 ## Commands
 

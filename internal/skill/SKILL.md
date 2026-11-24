@@ -35,7 +35,7 @@ workflow = "build.yml version={tag}"        # needs on: workflow_dispatch; only 
 command  = ["npm publish"]                  # no shell, like build
 ```
 
-Keywords: `{version}`, `{previous}`, `{major}`, `{minor}`, `{patch}`, `{tag}`, `{previous_tag}`, `{bump}`, `{hash}`, `{date}`, `{branch}`, `{remote}`, `{target}`.
+Keywords: `{version}`, `{previous}`, `{major}`, `{minor}`, `{patch}`, `{tag}`, `{previous_tag}`, `{bump}`, `{hash}`, `{date}`, `{branch}`, `{remote}`, `{target}`. They work in `bump.commit`, `build` and `publish`, release paths included.
 
 ## Flow
 

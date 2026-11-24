@@ -16,7 +16,7 @@
 | `{remote}`       | the push remote              | `origin`     |
 | `{target}`       | the `.shipo` folder          | `web`        |
 
-- They work in `bump.commit`, `build` and `publish`. `{hash}` doesn't work in `bump.commit`.
+- They work in `bump.commit`, `build` and `publish`, release paths included. `{hash}` doesn't work in `bump.commit`.
 - In `publish.push`, `{branch}` and `{remote}` are the checked-out branch and its upstream; no other keyword works there. See [push](publish.md#push).
 - An unknown `{name}` stays as written; `{{` is a literal `{`.
 - `version.pattern` has [its own](version.md#pattern).

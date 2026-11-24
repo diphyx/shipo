@@ -97,12 +97,12 @@ func TestPrograms(t *testing.T) {
 }
 
 func TestDescribe(t *testing.T) {
-	shipo := "[publish]\npush = [\"origin/main\", \"mirror/main\"]\nrelease = [\"dist/*\", \"notes.md\"]\nworkflow = \"build.yml version={tag}\"\ncommand = \"deploy {version}\"\n"
+	shipo := "[publish]\npush = [\"origin/main\", \"mirror/main\"]\nrelease = [\"dist/*\", \"app-{version}.zip\"]\nworkflow = \"build.yml version={tag}\"\ncommand = \"deploy {version}\"\n"
 	current := tagged(t, shipo, nil)
 
 	want := map[string][]string{
 		TASK_PUSH:     {"origin/main + v1.1.0", "mirror/main + v1.1.0"},
-		TASK_RELEASE:  {"v1.1.0 + dist/*, notes.md"},
+		TASK_RELEASE:  {"v1.1.0 + dist/*, app-1.1.0.zip"},
 		TASK_WORKFLOW: {"build.yml version=v1.1.0"},
 		TASK_COMMAND:  {"deploy 1.1.0"},
 	}
@@ -190,7 +190,7 @@ func TestPushRejected(t *testing.T) {
 }
 
 func TestReleaseFiles(t *testing.T) {
-	files := map[string]string{"dist/a.tgz": "a", "dist/b.tgz": "b", "dist/sub/c.txt": "c", "notes.md": "n"}
+	files := map[string]string{"dist/a.tgz": "a", "dist/b.tgz": "b", "dist/sub/c.txt": "c", "notes.md": "n", "out/app-1.0.0.zip": "o", "out/app-1.1.0.zip": "z"}
 
 	cases := []struct {
 		release string
@@ -203,12 +203,14 @@ func TestReleaseFiles(t *testing.T) {
 		{"[publish]\nrelease = true\n", nil, false},
 		{"[publish]\nrelease = \"missing/*\"\n", nil, true},
 		{"[publish]\nrelease = \"dist/[\"\n", nil, true},
+		{"[publish]\nrelease = \"out/app-{version}.zip\"\n", []string{"out/app-1.1.0.zip"}, false},
+		{"[publish]\nrelease = \"out/app-{tag}.zip\"\n", nil, true},
 	}
 
 	for _, testCase := range cases {
 		current := tagged(t, testCase.release, files)
 
-		got, filesError := ReleaseFiles(current.release.Target)
+		got, filesError := ReleaseFiles(current.release)
 		if testCase.fail != (filesError != nil) {
 			t.Fatalf("%q: error = %v", testCase.release, filesError)
 		}
